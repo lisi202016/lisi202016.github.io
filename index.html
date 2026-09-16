@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Лиси ♡</title>
+  <meta name="description" content="Приветики! Меня зовут Лиси, я рисую, придумываю дизайн и оживляю картинки. Ниже — все мои соцсети ~ ₊˚☁">
+  <meta name="theme-color" content="#f4afc2">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Лиси ♡">
+  <meta property="og:description" content="Приветики! Меня зовут Лиси, я рисую, придумываю дизайн и оживляю картинки. Ниже — все мои соцсети ~ ₊˚☁">
+  <meta property="og:image" content="https://lisi202016.carrd.co/assets/images/image01.jpg">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%8A%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Pacifico&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <noscript><style>.page > *{opacity:1 !important;transform:none !important}</style></noscript>
+</head>
+<body>
+  <script type="application/json" id="lisi-data"></script>
+  <div class="paws" aria-hidden="true"></div>
+
+  <!-- заставка: клик по ней разрешает браузеру включить звук -->
+  <div class="gate" id="gate" hidden>
+    <button class="gate__enter" id="gateEnter" type="button">
+      <span class="gate__avatar"><img id="gateAvatar" alt=""></span>
+      <span class="gate__name" id="gateName">Лиси</span>
+      <span class="gate__hint">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l11-2v12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="currentColor"/><circle cx="17" cy="16" r="3" fill="currentColor"/></svg>
+        <span id="gateText">нажми, чтобы войти</span>
+      </span>
+    </button>
+    <button class="gate__quiet" id="gateQuiet" type="button">войти без звука</button>
+  </div>
+
+  <main class="page" id="page">
+    <section class="card hero" style="--i:0">
+      <div class="hero__top">
+        <div class="hero__cover" id="cover"></div>
+        <span class="twinkle twinkle--1" aria-hidden="true">✦</span>
+        <span class="twinkle twinkle--2" aria-hidden="true">✦</span>
+        <span class="twinkle twinkle--3" aria-hidden="true">✧</span>
+        <div class="hero__body">
+          <div class="avatar">
+            <img id="avatar" alt="">
+            <span class="avatar__badge" id="avatarBadge" hidden></span>
+          </div>
+          <div class="hero__text">
+            <p class="hero__roles" id="roles"></p>
+            <h1 class="hero__name" id="name">Лиси</h1>
+            <p class="hero__greeting" id="greeting"></p>
+            <div class="hero__actions">
+              <a class="btn btn--light" href="#order" id="orderButton">
+                <span id="orderButtonText">заказать арт</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 7.5l3 3" stroke="currentColor" stroke-width="2"/></svg>
+              </a>
+              <a class="btn btn--ghost" href="#merch" id="merchButton">мерч</a>
+              <a class="btn btn--ghost" href="#about" id="aboutButton">обо мне</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <nav class="links" id="links" aria-label="Соцсети"></nav>
+    </section>
+
+    <section class="card section about" id="about" style="--i:1">
+      <h2 class="title">
+        <span class="title__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="15.6" rx="5.2" ry="4.4"/><ellipse cx="5.6" cy="10.2" rx="2" ry="2.5"/><ellipse cx="9.4" cy="6" rx="2.1" ry="2.7"/><ellipse cx="14.6" cy="6" rx="2.1" ry="2.7"/><ellipse cx="18.4" cy="10.2" rx="2" ry="2.5"/></svg></span>
+        <span id="aboutTitle">обо мне</span>
+      </h2>
+      <div class="about__text" id="aboutText"></div>
+      <ul class="facts" id="facts"></ul>
+      <p class="signature" id="signature"></p>
+    </section>
+
+    <section class="card section order wide" id="order" style="--i:2">
+      <div class="order__head">
+        <h2 class="title">
+          <span class="title__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6h1.9A4.7 4.7 0 0 0 21 11c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11.5" r="1.4" fill="#fff"/><circle cx="10" cy="7.3" r="1.4" fill="#fff"/><circle cx="14.6" cy="7.3" r="1.4" fill="#fff"/><circle cx="17.3" cy="11" r="1.4" fill="#fff"/></svg></span>
+          <span>заказать арт</span>
+        </h2>
+        <span class="status" id="status"><i></i><span id="statusText"></span></span>
+      </div>
+
+      <div class="tabs" id="tabs" role="tablist" aria-label="Что нарисовать"></div>
+
+      <div class="order__grid" id="panel" role="tabpanel">
+        <aside class="order__side">
+          <div class="prices">
+            <ul class="prices__list" id="prices"></ul>
+            <p class="prices__deadline" id="deadlineRow">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span id="deadline"></span>
+            </p>
+            <a class="btn btn--accent" id="contact" target="_blank" rel="noopener noreferrer"></a>
+          </div>
+          <button class="sheet" id="sheet" type="button" hidden>
+            <img id="sheetImg" alt="Прайс-лист" loading="lazy">
+            <span class="sheet__label">прайс-лист целиком ✦</span>
+          </button>
+        </aside>
+        <div class="gallery-wrap">
+          <div class="gallery" id="gallery"></div>
+          <button class="more" id="more" type="button" hidden></button>
+        </div>
+      </div>
+
+      <details class="rules" id="rulesBox">
+        <summary>
+          <span>правила при заказе</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <ol class="rules__list" id="rules"></ol>
+      </details>
+    </section>
+
+    <section class="card section merch wide" id="merch" style="--i:3">
+      <div class="merch__head">
+        <div class="merch__intro">
+          <h2 class="title">
+            <span class="title__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5.2 7.5h13.6a1 1 0 0 1 1 1.1l-1 11.5a1 1 0 0 1-1 .9H6.2a1 1 0 0 1-1-.9l-1-11.5a1 1 0 0 1 1-1.1z"/><path d="M8.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17.6s-2.9-1.8-3.4-3.5c-.4-1.2.4-2.3 1.5-2.3.8 0 1.4.5 1.9 1.2.5-.7 1.1-1.2 1.9-1.2 1.1 0 1.9 1.1 1.5 2.3-.5 1.7-3.4 3.5-3.4 3.5z" fill="#fff"/></svg></span>
+            <span id="merchTitle">мерч</span>
+          </h2>
+          <p class="merch__lead" id="merchLead"></p>
+        </div>
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <span class="sr">Поиск по мерчу</span>
+          <input type="search" id="merchSearch" placeholder="найти: Помни, пони, Ханако…" autocomplete="off">
+        </label>
+      </div>
+      <div class="chips" id="merchChips" role="group" aria-label="Категории мерча"></div>
+      <div class="merch__grid" id="merchGrid"></div>
+      <p class="merch__empty" id="merchEmpty" hidden>ничего не нашлось — попробуй другое слово ✦</p>
+      <button class="more" id="merchMore" type="button" hidden></button>
+    </section>
+
+    <footer class="footer" style="--i:4"><span id="footer"></span></footer>
+  </main>
+
+  <div class="picker" id="picker" hidden>
+    <div class="picker__backdrop" data-close></div>
+    <div class="picker__panel" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+      <button class="picker__close" type="button" data-close aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+      <div class="picker__product">
+        <img id="pickerImg" alt="">
+        <div>
+          <p class="picker__kicker">где купить?</p>
+          <h3 class="picker__title" id="pickerTitle"></h3>
+          <p class="picker__sub" id="pickerSub"></p>
+        </div>
+      </div>
+      <div class="picker__list" id="pickerList"></div>
+    </div>
+  </div>
+
+  <div class="player" id="player" hidden>
+    <button class="player__disc" id="playBtn" type="button" aria-label="Пауза">
+      <span class="disc" aria-hidden="true"><img id="discImg" alt=""></span>
+      <span class="player__state" aria-hidden="true">
+        <svg class="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+        <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>
+      </span>
+    </button>
+    <div class="player__info">
+      <span class="player__title" id="trackTitle"></span>
+      <span class="player__artist" id="trackArtist"></span>
+    </div>
+    <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <label class="player__volume">
+      <span class="sr">Громкость</span>
+      <input type="range" id="volume" min="0" max="1" step="0.01">
+    </label>
+    <button class="player__mute" id="muteBtn" type="button" aria-label="Выключить звук">
+      <svg class="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg class="i-muted" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Просмотр работы">
+    <button class="lightbox__btn lightbox__close" id="lbClose" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <button class="lightbox__btn lightbox__prev" id="lbPrev" type="button" aria-label="Предыдущая"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <figure class="lightbox__figure"><img id="lbImg" alt=""><figcaption id="lbCount"></figcaption></figure>
+    <button class="lightbox__btn lightbox__next" id="lbNext" type="button" aria-label="Следующая"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+
+  <audio id="audio" preload="auto"></audio>
+  <script src="shared/icons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
