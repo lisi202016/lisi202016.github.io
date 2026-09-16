@@ -13,9 +13,9 @@
   },
   "music": {
     "enabled": true,
-    "src": "/music/music-box.wav",
-    "title": "Музыкальная шкатулка",
-    "artist": "заглушка — поменяй в панели",
+    "src": "/uploads/track-mu4qqui1-883q3pgd.mp3",
+    "title": "cinnamon speedway (online-audio-converter.com)",
+    "artist": "",
     "volume": 0.45,
     "startAt": 0,
     "loop": true
