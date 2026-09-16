@@ -411,20 +411,6 @@
         ]
       },
       {
-        "id": "m19",
-        "title": "Помни",
-        "subtitle": "Удивительный цифровой цирк",
-        "category": "брелоки",
-        "image": "https://mow-basket-cdn-01.geobasket.ru/vol10235/part1023572/1023572822/images/c516x688/1.webp",
-        "links": [
-          {
-            "market": "wildberries",
-            "url": "https://www.wildberries.ru/catalog/1023572822/detail.aspx",
-            "price": ""
-          }
-        ]
-      },
-      {
         "id": "m18",
         "title": "Рагата",
         "subtitle": "Удивительный цифровой цирк · составной",
@@ -439,6 +425,25 @@
           {
             "market": "wildberries",
             "url": "https://www.wildberries.ru/catalog/1260906899/detail.aspx",
+            "price": ""
+          },
+          {
+            "market": "ozon",
+            "url": "https://ozon.ru/t/TO95DWz",
+            "price": ""
+          }
+        ]
+      },
+      {
+        "id": "m19",
+        "title": "Помни",
+        "subtitle": "Удивительный цифровой цирк",
+        "category": "брелоки",
+        "image": "https://mow-basket-cdn-01.geobasket.ru/vol10235/part1023572/1023572822/images/c516x688/1.webp",
+        "links": [
+          {
+            "market": "wildberries",
+            "url": "https://www.wildberries.ru/catalog/1023572822/detail.aspx",
             "price": ""
           }
         ]
