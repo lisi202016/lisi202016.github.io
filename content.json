@@ -301,20 +301,6 @@
     "lead": "Фигурки, брелоки, значки и постеры с моими артами. Нажми на товар — откроется страница, где его можно купить.",
     "items": [
       {
-        "id": "sldotdhq",
-        "title": " Коллекционер",
-        "subtitle": "Дом совы ",
-        "category": "Акриловый брелок",
-        "image": "/uploads/img-mu4pmk6u-f32r0gip.webp",
-        "links": [
-          {
-            "market": "ozon",
-            "url": "https://ozon.ru/t/6lYR9DJ",
-            "price": ""
-          }
-        ]
-      },
-      {
         "id": "m02",
         "title": "Кейн",
         "subtitle": "Удивительный цифровой цирк",
@@ -396,6 +382,11 @@
           {
             "market": "wildberries",
             "url": "https://www.wildberries.ru/catalog/1023565761/detail.aspx",
+            "price": ""
+          },
+          {
+            "market": "ozon",
+            "url": "https://ozon.ru/t/j7Vl7pF",
             "price": ""
           }
         ]
@@ -985,6 +976,20 @@
           {
             "market": "wildberries",
             "url": "https://www.wildberries.ru/catalog/845863981/detail.aspx",
+            "price": ""
+          }
+        ]
+      },
+      {
+        "id": "sldotdhq",
+        "title": " Коллекционер",
+        "subtitle": "Дом совы ",
+        "category": "Акриловый брелок",
+        "image": "/uploads/img-mu4pmk6u-f32r0gip.webp",
+        "links": [
+          {
+            "market": "ozon",
+            "url": "https://ozon.ru/t/6lYR9DJ",
             "price": ""
           }
         ]
