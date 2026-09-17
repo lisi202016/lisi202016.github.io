@@ -65,6 +65,81 @@
     return null;
   }
 
+  // ---------------------------------------------------------- статистика переходов
+  // Работает только на опубликованном сайте: config.js задаёт LISI_STATS.
+  // Ни имён, ни IP: случайный номер гостя в браузере, тип устройства,
+  // откуда пришёл, язык и часовой пояс.
+
+  var STATS = window.LISI_STATS || null;
+
+  function visitorId() {
+    var id = safeStorage('get', 'lisi:visitor');
+    if (!id || !/^[a-z0-9]{6,32}$/.test(id)) {
+      id = (Math.random().toString(36).slice(2, 10) + Date.now().toString(36)).slice(0, 16);
+      safeStorage('set', 'lisi:visitor', id);
+    }
+    return id;
+  }
+
+  function deviceType() {
+    if (!window.matchMedia('(pointer: coarse)').matches) return 'desktop';
+    return Math.min(screen.width, screen.height) >= 600 ? 'tablet' : 'mobile';
+  }
+
+  function referrerHost() {
+    try {
+      if (!document.referrer) return '';
+      var host = new URL(document.referrer).hostname.replace(/^www\./, '');
+      return host === location.hostname ? '' : host.slice(0, 120);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function track(type, target, label, item) {
+    if (!STATS || !STATS.url || !STATS.key) return;
+    var zone = '';
+    try {
+      zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch (e) { /* старый браузер */ }
+    var request = {
+      method: 'POST',
+      headers: { apikey: STATS.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        type: type,
+        target: String(target || 'other').slice(0, 40),
+        label: label ? String(label).slice(0, 160) : null,
+        item: item ? String(item).slice(0, 80) : null,
+        visitor: visitorId(),
+        device: deviceType(),
+        referrer: type === 'visit' ? referrerHost() : null,
+        lang: (navigator.language || '').slice(0, 20),
+        tz: zone.slice(0, 60)
+      })
+    };
+    try {
+      // keepalive — чтобы запрос не оборвался, если страница сразу закроется;
+      // если браузер так не умеет, шлём обычным запросом
+      fetch(STATS.url, Object.assign({ keepalive: true }, request)).catch(function () {
+        fetch(STATS.url, request).catch(function () {});
+      });
+    } catch (e) { /* статистика не должна ломать сайт */ }
+  }
+
+  // и обычный клик, и колёсиком «открыть в новой вкладке» — это переход
+  function onOpen(node, handler) {
+    node.addEventListener('click', handler);
+    node.addEventListener('auxclick', function (e) { if (e.button === 1) handler(e); });
+  }
+
+  function trackVisit() {
+    try {
+      if (sessionStorage.getItem('lisi:visit')) return;
+      sessionStorage.setItem('lisi:visit', '1');
+    } catch (e) { /* без sessionStorage считаем каждую загрузку */ }
+    track('visit', 'page');
+  }
+
   // На своём сервере данные встроены в страницу, на GitHub Pages лежат рядом в content.json.
   // Пути к своим файлам делаем относительными, чтобы сайт работал в любой папке.
   function asset(u) {
@@ -111,6 +186,7 @@
       rel: 'noopener noreferrer me'
     }, el('span', { class: 'link__icon' }, icon(link.type)), el('span', { text: link.label || def.label }));
     a.style.setProperty('--brand', def.color);
+    onOpen(a, function () { track('link', link.type, link.label || def.label, link.id); });
     linksBox.append(a);
   });
 
@@ -148,6 +224,7 @@
   if (com.contactUrl && com.contactLabel) {
     $('contact').href = com.contactUrl;
     $('contact').textContent = com.contactLabel;
+    onOpen($('contact'), function () { track('contact', 'contact', com.contactLabel); });
   } else {
     $('contact').remove();
   }
@@ -232,6 +309,7 @@
     sheet.hidden = !cat.sheet;
     if (cat.sheet) {
       $('sheetImg').src = cat.sheet;
+      $('sheetImg').onerror = function () { sheet.hidden = true; };
       sheet.onclick = function () { openLightbox([cat.sheet], 0); };
     }
 
@@ -246,7 +324,8 @@
         img.classList.add('is-loaded');
       }
       img.addEventListener('load', function () {
-        ratios[src] = img.naturalWidth / img.naturalHeight;
+        // у картинок без собственного размера (например, SVG) оставляем 4:5
+        ratios[src] = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 0.8;
         btn.dataset.ratio = ratios[src];
         img.classList.add('is-loaded');
         scheduleLayout();
@@ -272,6 +351,8 @@
   }
 
   if (!categories.length) {
+    // кнопка связи живёт в колонке с ценами — без категорий переносим её, а не теряем
+    if ($('contact')) $('order').append($('contact'));
     $('tabs').remove();
     $('panel').remove();
   } else {
@@ -398,7 +479,8 @@
           it.subtitle ? el('span', { class: 'product__sub', text: it.subtitle }) : null,
           markets));
       card.setAttribute('aria-label', it.title + (it.subtitle ? ', ' + it.subtitle : '') + (single ? '' : ' — выбрать магазин'));
-      if (!single) card.addEventListener('click', function () { openPicker(it, card); });
+      if (single) onOpen(card, function () { track('market', links[0].market, productName(it), it.id); });
+      else card.addEventListener('click', function () { openPicker(it, card); });
       return card;
     };
 
@@ -435,6 +517,15 @@
   // окно «где купить» — когда один товар есть на нескольких маркетах
   var pickerFocus = null;
 
+  function productName(it) {
+    return it.title + (it.subtitle ? ' · ' + it.subtitle : '');
+  }
+
+  // лайтбокс и окно маркетов оба запирают прокрутку — отпускаем, только когда закрыты оба
+  function syncScrollLock() {
+    document.body.style.overflow = $('lightbox').hidden && $('picker').hidden ? '' : 'hidden';
+  }
+
   function openPicker(it, trigger) {
     pickerFocus = trigger;
     $('pickerImg').src = it.image;
@@ -450,11 +541,14 @@
         marketLogo(l.market), el('span', { class: 'market__name', text: m.label }),
         l.price ? el('span', { class: 'market__price', text: l.price }) : null, arrow);
       a.style.setProperty('--mk', m.color);
-      a.addEventListener('click', function () { setTimeout(closePicker, 50); });
+      onOpen(a, function () {
+        track('market', l.market, productName(it), it.id);
+        setTimeout(closePicker, 50);
+      });
       list.append(a);
     });
     $('picker').hidden = false;
-    document.body.style.overflow = 'hidden';
+    syncScrollLock();
     var first = list.querySelector('a');
     if (first) first.focus({ preventScroll: true });
   }
@@ -462,7 +556,7 @@
   function closePicker() {
     if ($('picker').hidden) return;
     $('picker').hidden = true;
-    document.body.style.overflow = '';
+    syncScrollLock();
     if (pickerFocus) pickerFocus.focus({ preventScroll: true });
   }
 
@@ -473,7 +567,9 @@
     if (e.key === 'Escape') closePicker();
   });
 
-  $('footer').textContent = '© ' + new Date().getFullYear() + ' ' + profile.name + ' · ' + data.site.footer;
+  $('footer').textContent = ['© ' + new Date().getFullYear() + (profile.name ? ' ' + profile.name : ''), data.site.footer]
+    .filter(Boolean)
+    .join(' · ');
 
   // ---------------------------------------------------------- просмотр работ
 
@@ -496,14 +592,14 @@
     lb.index = index;
     lb.lastFocus = document.activeElement;
     $('lightbox').hidden = false;
-    document.body.style.overflow = 'hidden';
+    syncScrollLock();
     showLightbox();
     $('lbClose').focus();
   }
 
   function closeLightbox() {
     $('lightbox').hidden = true;
-    document.body.style.overflow = '';
+    syncScrollLock();
     if (lb.lastFocus) lb.lastFocus.focus();
   }
 
@@ -626,7 +722,8 @@
     entered = true;
     document.body.classList.add('is-entered');
     var gate = $('gate');
-    if (!gate.hidden) {
+    // без музыки заставку убирают ещё до входа — её может уже не быть
+    if (gate && !gate.hidden) {
       gate.classList.add('is-leaving');
       setTimeout(function () { gate.remove(); }, 800);
     }
@@ -680,23 +777,33 @@
   }, { passive: true });
   }
 
+  function start(data) {
+    main(localize(data));
+    trackVisit();
+  }
+
+  function loadFailed(err) {
+    console.error(err);
+    document.body.classList.add('is-entered');
+    var gate = document.getElementById('gate');
+    if (gate) gate.remove();
+    document.getElementById('page').prepend(el('p', { class: 'card section', text: 'Не получилось загрузить сайт — обнови страницу ♡' }));
+  }
+
   var inline = document.getElementById('lisi-data');
   var raw = inline ? inline.textContent.trim() : '';
   if (raw.charAt(0) === '{') {
-    main(localize(JSON.parse(raw)));
+    start(JSON.parse(raw));
   } else {
+    // ошибка загрузки — сообщение посетителю; ошибка в самом коде сайта — только в консоль,
+    // иначе недорисованная страница получила бы ещё и ложное «не получилось загрузить»
     fetch('content.json?v=' + Date.now(), { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('content.json: ' + r.status);
         return r.json();
       })
-      .then(function (d) { main(localize(d)); })
-      .catch(function (err) {
-        console.error(err);
-        document.body.classList.add('is-entered');
-        var gate = document.getElementById('gate');
-        if (gate) gate.remove();
-        document.getElementById('page').prepend(el('p', { class: 'card section', text: 'Не получилось загрузить сайт — обнови страницу ♡' }));
-      });
+      .then(function (d) {
+        setTimeout(function () { start(d); }, 0);
+      }, loadFailed);
   }
 })();

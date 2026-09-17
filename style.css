@@ -565,6 +565,7 @@ button { font: inherit; color: inherit; }
 .more:hover { background: var(--pink-50); }
 
 .rules { margin-top: 26px; border-radius: 20px; background: var(--pink-50); box-shadow: inset 0 0 0 1px var(--line); }
+.order > .btn { margin-top: 22px; }
 .rules summary {
   display: flex;
   align-items: center;
