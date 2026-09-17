@@ -1079,6 +1079,8 @@
     S.onChange = drawPreview;
   }
 
+  const MUSIC_BOX = { src: '/music/music-box.wav', title: 'Музыкальная шкатулка', artist: '', startAt: 0, volume: 0.45 };
+
   function renderMusic(root) {
     const m = S.content.music;
     root.append(head('Музыка', 'Трек, который играет, когда человек заходит на сайт.'));
@@ -1107,6 +1109,7 @@
       }
       audio.volume = m.volume;
       syncMeta();
+      syncBox();
     };
 
     const title = input(m, 'title', { max: 100, onInput: syncMeta });
@@ -1135,9 +1138,37 @@
       },
     });
 
+    // встроенный трек сайта — лежит в music/ и никуда не пропадает, даже если загрузить свой
+    const boxNote = h('span', { class: 'field__hint' });
+    const boxBtn = h('button', {
+      class: 'btn btn--soft', type: 'button',
+      onclick: () => {
+        if (m.src === MUSIC_BOX.src) return toast('Шкатулка уже стоит');
+        Object.assign(m, MUSIC_BOX);
+        src.value = m.src;
+        src.classList.remove('is-invalid');
+        title.value = m.title;
+        artist.value = m.artist;
+        start.value = 0;
+        vol.value = Math.round(m.volume * 100);
+        syncVol();
+        syncSrc();
+        changed();
+        toast('Музыкальная шкатулка снова стоит — не забудь сохранить');
+      },
+    }, ui('music'), 'Вернуть музыкальную шкатулку');
+    const syncBox = () => {
+      const isBox = m.src === MUSIC_BOX.src;
+      boxBtn.disabled = isBox;
+      boxNote.textContent = isBox
+        ? 'Сейчас играет музыкальная шкатулка — встроенный трек сайта.'
+        : 'Загруженный трек не удалится: он останется в разделе «Файлы».';
+    };
+
     root.append(card(cardTitle('Трек'), now, zone,
       field('…или прямая ссылка на аудиофайл', src, 'Ссылка должна вести прямо на файл. Страницы YouTube, VK или Яндекс Музыки не подойдут.'),
-      h('div', { class: 'grid2' }, field('Название', title), field('Исполнитель', artist))));
+      h('div', { class: 'grid2' }, field('Название', title), field('Исполнитель', artist)),
+      h('div', { class: 'field' }, h('div', { class: 'inline' }, boxBtn), boxNote)));
 
     const volValue = h('output', { class: 'range-val' });
     const vol = h('input', { type: 'range', min: '0', max: '100', step: '1' });
