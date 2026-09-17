@@ -3,8 +3,8 @@
     "name": "Лиси",
     "roles": "художник · дизайнер · аниматор",
     "greeting": "Приветики меня зовут Лиси, я художник дизайнер.\nНиже вы найдете ссылки на все мои соц. сети ~ ₊˚☁ ╮",
-    "avatar": "https://lisi202016.carrd.co/assets/images/image01.jpg",
-    "cover": "https://lisi202016.carrd.co/assets/images/container01.jpg",
+    "avatar": "/uploads/img-mu5slbpl-d2ldj30n.jpg",
+    "cover": "/uploads/img-mu5slbzl-sr7cocdd.jpg",
     "orderButton": "заказать арт"
   },
   "site": {
@@ -13,7 +13,7 @@
   },
   "music": {
     "enabled": true,
-    "src": "/music/music-box.wav",
+    "src": "/music/music-box.m4a",
     "title": "Музыкальная шкатулка",
     "artist": "",
     "volume": 0.45,
@@ -139,7 +139,7 @@
       {
         "id": "people",
         "title": "люди",
-        "sheet": "https://lisi202016.carrd.co/assets/images/gallery07/87f67fd4.jpg",
+        "sheet": "/uploads/img-mu5slc96-fexfcotj.jpg",
         "prices": [
           {
             "id": "p1",
@@ -178,41 +178,41 @@
           }
         ],
         "images": [
-          "https://lisi202016.carrd.co/assets/images/gallery01/446f12e1.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery01/731592e9.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery01/01894975.jpg",
-          "https://sun9-64.vkuserphoto.ru/s/v1/ig2/BEEf0fPq3DmP0mhrg3gMps7MAjELa7tIjcgVphu5zX19aMPwYq9AT-ySriTItywX7e406UyCwIBWi1QjWY3jqxuj.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2560x2560&from=bu&cs=2560x0",
-          "https://sun9-62.vkuserphoto.ru/s/v1/ig2/mELSv8VscfAVwFFGdy8sf_016qh-owAtOQswFSCLQjNJGSmJ1wI5BYV4xAcCslAZdSBbHsPbqfhnkodPE9kj2vhc.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1279,1440x1439,2498x2497&from=bu&cs=2498x0",
-          "https://lisi202016.carrd.co/assets/images/gallery01/15a5befa.jpg",
-          "https://sun9-48.vkuserphoto.ru/s/v1/ig2/FKW5_cKmFHuuvedU58Q3vBed8VNQm99T5Sd3OUd4MeYANme4wgkfFcVclx55e-QPufPrwu1Bzvo_nG28-d2Dn_m0.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1440,2560x2560&from=bu&cs=2560x0",
-          "https://sun9-11.vkuserphoto.ru/s/v1/ig2/Fw2p_NG3g35oHL3lr0prRCdVPCLV38aU-iMGVRy9JuLJms76ec35LSeMaOBeHNRyUNUqERoD9N-GUfvEH5620fVL.jpg?quality=95&as=32x23,48x34,72x51,108x76,160x113,240x170,360x254,480x339,540x382,640x452,720x509,1080x763,1280x904,1440x1018,2560x1809&from=bu&cs=2560x0",
-          "https://lisi202016.carrd.co/assets/images/gallery02/b7292c68.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery02/2bbc806a.jpg",
+          "/uploads/img-mu5slckr-7z6mi6ax.jpg",
+          "/uploads/img-mu5slcs3-jumu64jo.jpg",
+          "/uploads/img-mu5slcz7-xg7daesc.jpg",
+          "/uploads/img-mu5slfam-xxep2ww8.webp",
+          "/uploads/img-mu5slj20-7mcy9tkh.webp",
+          "/uploads/img-mu5slji4-n9l0727h.jpg",
+          "/uploads/img-mu5sllat-md9g31l9.webp",
+          "/uploads/img-mu5slned-zazaz9o2.webp",
+          "/uploads/img-mu5slnqq-bl5sm9p1.jpg",
+          "/uploads/img-mu5slnzj-d8alemht.jpg",
           "/uploads/img-mu4o2pz8-3bdjtbkc.png",
-          "https://lisi202016.carrd.co/assets/images/gallery03/1c1ebf66.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery03/59fb3693.jpg",
+          "/uploads/img-mu5slo82-us9f587y.jpg",
+          "/uploads/img-mu5sloho-ykdpu2v7.jpg",
           "/uploads/img-mu4o3rm0-nj368r8q.png",
-          "https://sun9-58.vkuserphoto.ru/s/v1/ig2/ZpMf5j-gLSdpHzq0Wz8bReq6DjoDbTzOlvckzvtd8a4xwC14YUrwv7ikwv_cwolpCv_ncMubI4uDR3E-FTyTL5HI.jpg?quality=95&as=32x18,48x26,72x40,108x59,160x88,240x132,360x198,480x264,540x297,640x352,720x396,1080x594,1280x704,1440x792,2560x1408&from=bu&cs=2560x0",
-          "https://lisi202016.carrd.co/assets/images/gallery04/7e058907.png",
-          "https://lisi202016.carrd.co/assets/images/gallery04/21dc8248.jpg",
-          "https://sun9-50.vkuserphoto.ru/s/v1/ig2/WXehL6sTCuQsr7sOZafmsUexoreOSNYu2wQgnaSMiYR8d_StUAOq2JDzpToRX_joFTo2RgZMePLQC2CXStT3CJYJ.jpg?quality=95&as=32x43,48x65,72x97,108x146,160x216,240x325,360x487,480x649,540x731,640x866,720x974,1080x1461,1280x1732,1440x1948,1892x2560&from=bu&cs=1892x0",
-          "https://lisi202016.carrd.co/assets/images/gallery04/ea3f35f7.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery04/4cdb681a.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery04/f2327c6d.jpg",
-          "https://lisi202016.carrd.co/assets/images/gallery04/16b9f15b.jpg",
-          "https://sun9-5.vkuserphoto.ru/s/v1/ig2/qbiCFddO-SxGW8OSzu8iRXxLbOSJBPfJ5O4WpZ76en917129L2YZfuEiFXimM5U1C1VAeeNntb9mPTAjpAEVTGeI.jpg?quality=95&as=32x27,48x40,72x60,108x91,160x134,240x201,360x302,480x403,540x453,640x537,720x604,1080x906,1280x1073,1440x1208,2560x2147&from=bu&cs=2560x0",
-          "https://lisi202016.carrd.co/assets/images/gallery04/1e4312dc.jpg",
+          "/uploads/img-mu5slryo-uznfkgzm.webp",
+          "/uploads/img-mu5slsby-gthcq25p.png",
+          "/uploads/img-mu5sltrw-ws0eb331.jpg",
+          "/uploads/img-mu5slvtp-woxkncr8.webp",
+          "/uploads/img-mu5slw5m-1dqlpmd9.jpg",
+          "/uploads/img-mu5slwe3-51x02bqg.jpg",
+          "/uploads/img-mu5slwkr-zw318qkh.jpg",
+          "/uploads/img-mu5slwrk-89uvytgz.jpg",
+          "/uploads/img-mu5slzky-yuo20uch.webp",
+          "/uploads/img-mu5slzyo-fi7cvcgn.jpg",
           "/uploads/img-mu4o8erf-plinmk52.png",
           "/uploads/img-mu4o4z8g-s2d3e03p.png",
           "/uploads/img-mu4o6z0s-j0j4taev.png",
           "/uploads/img-mu4o7py7-6kqzbitt.png",
-          "https://sun9-81.vkuserphoto.ru/s/v1/ig2/3bcggH6G6b6KuzH5EUyMOAiSkqhyKCB0a5njBsEKOt4CHmeK9lW_YQ3KsamEaZ8f5EFf3lB--BjDobQh-gvOhEUu.jpg?quality=95&as=32x24,48x36,72x54,108x81,160x120,240x180,360x270,480x360,540x405,640x480,720x540,1080x810,1280x960,1440x1080,2560x1920&from=bu&cs=2560x0"
+          "/uploads/img-mu5sm1f1-w790t2ka.webp"
         ]
       },
       {
         "id": "chibi",
         "title": "чиби",
-        "sheet": "https://lisi202016.carrd.co/assets/images/gallery08/45655bfc.jpg",
+        "sheet": "/uploads/img-mu5sm1rf-y1vcl1e5.jpg",
         "prices": [
           {
             "id": "c1",
@@ -246,26 +246,26 @@
           }
         ],
         "images": [
-          "https://lisi202016.carrd.co/assets/images/gallery05/da7e129d.png",
-          "https://lisi202016.carrd.co/assets/images/gallery12/1af7a7d5.png",
-          "https://lisi202016.carrd.co/assets/images/gallery12/8e818f93.png",
-          "https://lisi202016.carrd.co/assets/images/gallery12/ea7256ec.png",
-          "https://lisi202016.carrd.co/assets/images/gallery06/a3165e42.jpg",
+          "/uploads/img-mu5sm23s-8ssjhvim.png",
+          "/uploads/img-mu5sm43n-9v4um9xv.png",
+          "/uploads/img-mu5sm5ss-vnkm9kl1.png",
+          "/uploads/img-mu5sm7gv-dvqzupdz.png",
+          "/uploads/img-mu5sm91e-1ojf75p8.jpg",
           "/uploads/img-mu4oj6ex-vdl612fw.png",
           "/uploads/img-mu4ojjve-k6khlpju.png",
-          "https://lisi202016.carrd.co/assets/images/gallery06/61d9c92a.jpg",
+          "/uploads/img-mu5sm98z-zf3fk2nh.jpg",
           "/uploads/img-mu4oikvv-t2tev06u.png",
-          "https://lisi202016.carrd.co/assets/images/gallery06/fbcb1a5b.jpg",
-          "https://sun9-39.vkuserphoto.ru/s/v1/ig2/nIhwe1T4TU6THRc9s_KM2X2S8RyZ8RXJXCc2tjKgbUMJazZMR_Ciby_OgZpGHhS0SMlB20OW9e_ky0gEs87iIsvC.jpg?quality=95&as=32x32,48x48,72x72,108x108,160x160,240x240,360x360,480x480,540x540,640x640,720x720,1080x1080,1280x1280,1440x1441,2559x2560&from=bu&cs=2559x0",
+          "/uploads/img-mu5sm9ge-rguwokzb.jpg",
+          "/uploads/img-mu5so8wd-tmknmgue.webp",
           "/uploads/img-mu4okr46-9qua5jb6.png",
-          "https://lisi202016.carrd.co/assets/images/gallery06/69dc6192.png",
+          "/uploads/img-mu5so9b9-tgg51d19.png",
           "/uploads/img-mu4okjho-6auru2s6.png"
         ]
       },
       {
         "id": "pony",
         "title": "пони",
-        "sheet": "https://lisi202016.carrd.co/assets/images/gallery09/cf850c64.jpg",
+        "sheet": "/uploads/img-mu5soazt-v1b2dhaw.jpg",
         "prices": [
           {
             "id": "n1",
@@ -290,8 +290,8 @@
           "/uploads/img-mu4omvr5-u50fl7xo.png",
           "/uploads/img-mu4oluxa-wl0lt2v2.png",
           "/uploads/img-mu4one1z-9x5sy8sw.png",
-          "https://lisi202016.carrd.co/assets/images/gallery11/2fc0a91d.png",
-          "https://lisi202016.carrd.co/assets/images/gallery11/12b4697a.jpg"
+          "/uploads/img-mu5sobap-k781wlf5.png",
+          "/uploads/img-mu5sod84-ipx99dzl.jpg"
         ]
       }
     ]
@@ -557,7 +557,7 @@
         "title": "Наклейки",
         "subtitle": "Удивительный цифровой цирк · А6",
         "category": "постеры и наклейки",
-        "image": "https://sun9-72.vkuserphoto.ru/s/v1/ig2/XpsjGAxxO9C-Gqe2ayM0BHm-ixn5kEaJ20ier9LyQdVUwMK5MLYkHqksu29rJ7vlunG8KVyThJutjP8Gc7U3-Qxi.jpg?background=ffffff&crop=0%2C50%2C750%2C900&quality=90&size=300x360",
+        "image": "/uploads/img-mu5sodkp-fah84o5i.jpg",
         "links": [
           {
             "market": "ozon",
@@ -699,7 +699,7 @@
         "title": "Рыцари Гвиневры",
         "subtitle": "фигурка 10 см",
         "category": "Акриловая фигурка",
-        "image": "https://sun9-36.vkuserphoto.ru/s/v1/ig2/rgkH94saqle9UIdUdAmQ0U8KKYnsOUS8bQmla1TncSOFBwBgiWj1XAUVb6nAA1URlru1l1SvdZCdqR2PQvV_jyfR.jpg?background=ffffff&crop=0%2C50%2C750%2C900&quality=90&size=300x360",
+        "image": "/uploads/img-mu5sody9-0ltw3g9h.jpg",
         "links": [
           {
             "market": "ozon",
@@ -713,7 +713,7 @@
         "title": "Рыцари Гвиневры",
         "subtitle": "акриловый брелок",
         "category": "Акриловый брелок",
-        "image": "https://sun9-46.vkuserphoto.ru/s/v1/ig2/zGda2wwKFOI5OS0w6PQfIqKIob6bRLx_fUnDKJN1ma_T8-J_gWbJFMApoY6o-kfSy15baB-Juay02byoydHNaD-N.jpg?background=ffffff&crop=0%2C50%2C750%2C900&quality=90&size=300x360",
+        "image": "/uploads/img-mu5soeiv-3vts2v5r.jpg",
         "links": [
           {
             "market": "ozon",
@@ -1026,7 +1026,7 @@
         "title": "Пинки Пай",
         "subtitle": "My Little Pony · 58 мм",
         "category": "значки",
-        "image": "https://sun9-71.vkuserphoto.ru/s/v1/ig2/Jgfm9RU10gmzI_hUiK1i_7KKWz3SZ7nkFrnyMxo8I7NQs0YUlZbxex_VpxrRvhTzkmPpZhKfruDZtNQ6cCOOX05g.jpg?background=ffffff&crop=89%2C0%2C899%2C1080&quality=90&size=300x360",
+        "image": "/uploads/img-mu5soetr-o1cqur10.jpg",
         "links": [
           {
             "market": "vk",
@@ -1040,7 +1040,7 @@
         "title": "Флаттершай",
         "subtitle": "My Little Pony · 58 мм",
         "category": "значки",
-        "image": "https://sun9-18.vkuserphoto.ru/s/v1/ig2/hrNb41FRPogFDW-xqzNdxCxrRF4VQJ5f1pvZA1EPd73BoV_InZjh41Qf80AwJ5zqVBb0lKwpD0lLY9wDMv8FPe5y.jpg?background=ffffff&crop=89%2C0%2C899%2C1080&quality=90&size=300x360",
+        "image": "/uploads/img-mu5sof76-s75sl1zg.jpg",
         "links": [
           {
             "market": "vk",
@@ -1209,7 +1209,7 @@
         "title": "Случайная пони",
         "subtitle": "My Little Pony · 58 мм",
         "category": "значки",
-        "image": "https://sun9-81.vkuserphoto.ru/s/v1/ig2/smlR6FcaB_m4izWvP0TnSuGLRhT-nK7bYbB9gJWFHSZLYqOdZ7EipOWbbMOaPJuTl2ym5g7w2l7g4SkSnjRWxD79.jpg?background=ffffff&crop=212%2C0%2C2132%2C2560&quality=90&size=300x360",
+        "image": "/uploads/img-mu5sofjf-10xknx4w.jpg",
         "links": [
           {
             "market": "vk",
@@ -1351,7 +1351,7 @@
         "title": "Лиси",
         "subtitle": "круглый · 58 мм",
         "category": "значки",
-        "image": "https://sun9-65.vkuserphoto.ru/s/v1/ig2/tGlTt4TXSLy-JOQkeNpyYU8L3ng65VLrS6grFPYPCB3nrT2zJw0osuIeKa_xr1kkeLaj-IoPr9uzoep5mePCKcOP.jpg?background=ffffff&crop=89%2C0%2C899%2C1080&quality=90&size=300x360",
+        "image": "/uploads/img-mu5sofvh-j5fgm4sw.jpg",
         "links": [
           {
             "market": "vk",
@@ -1365,7 +1365,7 @@
         "title": "Клубничка",
         "subtitle": "круглый · 58 мм",
         "category": "значки",
-        "image": "https://sun9-46.vkuserphoto.ru/impg/8fi0OguJJo5YEpez6Oi6B6djkptE8xh-BfJQ5g/vUlvRVHary8.jpg?size=0x400&quality=95&background=ffffff&crop=0.084,0,0.833,1&sign=9d30b1905464c74c90c2b503afc9056f&c_uniq_tag=N1DOpRqtq61Z_Q_Wl5NokJd9dhYMs8oeA_Y2bA6KYCQ&type=market_thumb",
+        "image": "/uploads/img-mu5sqdqh-bs8bvsyq.jpg",
         "links": [
           {
             "market": "vk",

@@ -270,7 +270,15 @@
   if (com.contactUrl && com.contactLabel) {
     $('contact').href = com.contactUrl;
     $('contact').textContent = com.contactLabel;
-    onOpen($('contact'), function () { track('contact', 'contact', com.contactLabel); });
+    onOpen($('contact'), function () {
+      track('contact', 'contact', com.contactLabel);
+      var cat = categories[current];
+      var text = cat && orderText(cat);
+      if (!text) return;
+      copyText(text).then(function () {
+        siteToast('Текст заказа скопирован ♡ Вставь его в чат');
+      }, function () { /* не вышло — просто откроется чат */ });
+    });
   } else {
     $('contact').remove();
   }
@@ -334,6 +342,163 @@
     tabs.style.setProperty('--w', active.offsetWidth + 'px');
   }
 
+  // ---------------------------------------------------------- калькулятор
+  // Пункты прайса можно отмечать: размер (один), вариант вроде фона (один или ни одного),
+  // добавки и «ещё один персонаж» со счётчиком. Внизу — примерная сумма, а кнопка связи
+  // копирует готовый текст заказа.
+
+  var calc = {};
+  var nf = window.Intl ? new Intl.NumberFormat('ru-RU') : { format: String };
+
+  function priceKind(p) {
+    if (p.kind) return p.kind;
+    var price = String(p.price || '');
+    if (!/\d/.test(price)) return 'none';
+    if (/%/.test(price)) return /персонаж|character|челов|ещё од|еще од/i.test(p.label) ? 'each' : 'add';
+    if (/фон|background/i.test(p.label)) return 'choice';
+    if (/^\s*\+/.test(price)) return 'add';
+    return 'base';
+  }
+
+  function priceAmount(price) {
+    var m = String(price).replace(/(\d)[\s ](?=\d{3}(\D|$))/g, '$1').match(/\d+(?:[.,]\d+)?/);
+    return m ? parseFloat(m[0].replace(',', '.')) : 0;
+  }
+
+  function calcState(cat) {
+    if (!calc[cat.id]) calc[cat.id] = { base: '', choice: '', add: {}, each: {} };
+    return calc[cat.id];
+  }
+
+  function calcSummary(cat) {
+    var st = calcState(cat);
+    var byId = {};
+    cat.prices.forEach(function (p) { byId[p.id] = p; });
+    var base = byId[st.base];
+    var parts = [];
+    var picked = [];
+    if (base) { parts.push(base.label); picked.push(base); }
+    if (byId[st.choice]) { parts.push(byId[st.choice].label); picked.push(byId[st.choice]); }
+    cat.prices.forEach(function (p) {
+      if (st.add[p.id]) { parts.push(p.label); picked.push(p); }
+      if (st.each[p.id] > 0) { parts.push(p.label + ' ×' + st.each[p.id]); picked.push(p); }
+    });
+    if (!picked.length) return null;
+    if (!base) return { parts: parts, text: 'выбери размер ✦' };
+    var baseSum = priceAmount(base.price);
+    var total = baseSum;
+    var cost = function (p) { return /%/.test(p.price) ? baseSum * priceAmount(p.price) / 100 : priceAmount(p.price); };
+    picked.forEach(function (p) {
+      if (p === base) return;
+      total += cost(p) * (st.each[p.id] > 0 ? st.each[p.id] : 1);
+    });
+    var currency = (String(base.price).match(/[₽$€£¥]|руб/) || ['₽'])[0];
+    var from = picked.some(function (p) { return /^\s*(от|from|~)/i.test(p.price); });
+    return { parts: parts, total: total, text: (from ? 'от ' : '') + nf.format(Math.round(total)) + ' ' + currency };
+  }
+
+  function renderPrices(cat) {
+    var prices = $('prices');
+    var st = calcState(cat);
+    prices.replaceChildren();
+    if (!cat.prices.length) {
+      prices.append(el('li', { class: 'prices__empty', text: 'цены уточняй в личке ♡' }));
+      $('calc').hidden = true;
+      return;
+    }
+    var usable = cat.prices.some(function (p) { return priceKind(p) === 'base' && priceAmount(p.price) > 0; });
+
+    cat.prices.forEach(function (p) {
+      var kind = usable ? priceKind(p) : 'none';
+      var li = el('li', { class: 'price' },
+        el('span', { class: 'price__label', text: p.label }), el('span', { class: 'price__dots' }), el('span', { class: 'price__value', text: p.price }));
+      if (kind === 'base' || kind === 'choice' || kind === 'add') {
+        var isOn = kind === 'add' ? !!st.add[p.id] : st[kind] === p.id;
+        var box = el('input', { type: kind === 'add' ? 'checkbox' : 'radio', name: 'calc-' + kind, class: 'sr' });
+        box.checked = isOn;
+        li = el('li', { class: 'price price--pick price--' + kind + (isOn ? ' is-on' : '') });
+        var label = el('label', { class: 'price__row' }, box, el('span', { class: 'price__mark', 'aria-hidden': 'true' }),
+          el('span', { class: 'price__label', text: p.label }), el('span', { class: 'price__dots' }), el('span', { class: 'price__value', text: p.price }));
+        li.append(label);
+        // радио нельзя снять повторным нажатием — для размера и фона делаем это сами
+        box.addEventListener('click', function () {
+          if (kind === 'add') st.add[p.id] = box.checked;
+          else st[kind] = st[kind] === p.id ? '' : p.id;
+          renderPrices(cat);
+          var again = $('prices').querySelector('[data-id="' + p.id + '"] input');
+          if (again) again.focus({ preventScroll: true });
+        });
+      } else if (kind === 'each') {
+        var n = st.each[p.id] || 0;
+        var count = el('output', { class: 'stepper__n', text: String(n), 'aria-live': 'polite' });
+        var minus = el('button', { class: 'stepper__btn', type: 'button', 'aria-label': 'меньше: ' + p.label, text: '−' });
+        var plus = el('button', { class: 'stepper__btn', type: 'button', 'aria-label': 'больше: ' + p.label, text: '+' });
+        minus.disabled = n <= 0;
+        plus.disabled = n >= 10;
+        var change = function (delta, btn) {
+          st.each[p.id] = Math.max(0, Math.min(10, (st.each[p.id] || 0) + delta));
+          renderPrices(cat);
+          var again = $('prices').querySelector('[data-id="' + p.id + '"] .stepper__btn:' + (btn === minus ? 'first-of-type' : 'last-of-type'));
+          if (again && !again.disabled) again.focus({ preventScroll: true });
+        };
+        minus.addEventListener('click', function () { change(-1, minus); });
+        plus.addEventListener('click', function () { change(1, plus); });
+        li.className = 'price price--each' + (n ? ' is-on' : '');
+        li.append(el('span', { class: 'stepper' }, minus, count, plus));
+      }
+      li.setAttribute('data-id', p.id);
+      prices.append(li);
+    });
+
+    var box = $('calc');
+    box.hidden = !usable;
+    if (!usable) return;
+    var sum = calcSummary(cat);
+    $('calcTotal').textContent = sum ? sum.text : '—';
+    $('calcHint').textContent = !sum
+      ? 'отметь пункты прайса — посчитаю примерно ✦'
+      : sum.total == null
+        ? 'без размера посчитать не получится'
+        : 'примерная цена ♡ кнопка ниже скопирует текст заказа';
+    box.classList.toggle('is-ready', !!(sum && sum.total != null));
+  }
+
+  function orderText(cat) {
+    var sum = calcSummary(cat);
+    if (!sum || sum.total == null) return '';
+    return 'Привет! Хочу заказать арт (' + cat.title + '): ' + sum.parts.join(', ') + '. По прайсу выходит ' + sum.text + '.';
+  }
+
+  // Копируем сразу, пока идёт клик: через миг откроется вкладка с чатом, и асинхронный
+  // буфер обмена может отказать «страница не в фокусе»
+  function copyText(text) {
+    var area = el('textarea', { readonly: 'readonly', 'aria-hidden': 'true', style: 'position:fixed;top:0;left:0;opacity:0;pointer-events:none' });
+    area.value = text;
+    document.body.append(area);
+    area.focus({ preventScroll: true });
+    area.select();
+    area.setSelectionRange(0, text.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { /* старый браузер */ }
+    area.remove();
+    if (ok) return Promise.resolve();
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return Promise.reject(new Error('copy'));
+  }
+
+  var toastTimer = 0;
+  function siteToast(text) {
+    var t = $('siteToast');
+    t.textContent = text;
+    t.hidden = false;
+    t.classList.remove('is-out');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      t.classList.add('is-out');
+      toastTimer = setTimeout(function () { t.hidden = true; }, 350);
+    }, 4200);
+  }
+
   function renderCategory(index, animate) {
     current = index;
     var cat = categories[index];
@@ -343,13 +508,7 @@
     });
     moveIndicator();
 
-    var prices = $('prices');
-    prices.replaceChildren();
-    cat.prices.forEach(function (p) {
-      prices.append(el('li', { class: 'price' },
-        el('span', { text: p.label }), el('span', { class: 'price__dots' }), el('span', { class: 'price__value', text: p.price })));
-    });
-    if (!cat.prices.length) prices.append(el('li', { class: 'prices__empty', text: 'цены уточняй в личке ♡' }));
+    renderPrices(cat);
 
     var sheet = $('sheet');
     sheet.hidden = !cat.sheet;
