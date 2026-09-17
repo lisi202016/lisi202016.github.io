@@ -258,18 +258,25 @@
     const b64ToText = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), (c) => c.charCodeAt(0)));
 
     async function gh(method, path, body) {
+      // Первое соединение с api.github.com иногда висит десятки секунд, а повторный запрос проходит сразу.
+      // Чтение поэтому ждём недолго и повторяем; запись не повторяем — иначе можно закоммитить дважды.
+      const read = method === 'GET';
+      const attempts = read ? 3 : 1;
       let res;
-      try {
-        res = await fetch(`https://api.github.com${path}`, {
-          method,
-          headers: body ? { ...headers(), 'Content-Type': 'application/json' } : headers(),
-          body: body ? JSON.stringify(body) : undefined,
-          cache: 'no-store',
-          // без таймаута зависшая сеть навсегда оставляла панель на «загрузка…»
-          signal: timeoutSignal(30000),
-        });
-      } catch {
-        throw new Error('GitHub не отвечает — проверь интернет');
+      for (let attempt = 1; ; attempt++) {
+        try {
+          res = await fetch(`https://api.github.com${path}`, {
+            method,
+            headers: body ? { ...headers(), 'Content-Type': 'application/json' } : headers(),
+            body: body ? JSON.stringify(body) : undefined,
+            cache: 'no-store',
+            signal: timeoutSignal(read ? 12000 : 45000),
+          });
+          break;
+        } catch {
+          if (attempt >= attempts) throw new Error('GitHub не отвечает — проверь интернет');
+          bootStatus(`GitHub долго не отвечает — пробую ещё раз (${attempt + 1} из ${attempts})…`);
+        }
       }
       let data = null;
       try {
@@ -300,7 +307,7 @@
         }
       },
       async profile() {
-        const r = await fetch(`${CONFIG.siteUrl}content.json?v=${Date.now()}`, { cache: 'no-store' }).then((x) => x.json());
+        const r = await fetch(`${CONFIG.siteUrl}content.json?v=${Date.now()}`, { cache: 'no-store', signal: timeoutSignal(15000) }).then((x) => x.json());
         return { name: r.profile.name, avatar: r.profile.avatar };
       },
       async login(value, remember) {
@@ -326,7 +333,13 @@
         storeToken('');
       },
       async loadContent() {
-        if (!defaults) defaults = await fetch(`defaults.json?v=${Date.now()}`, { cache: 'no-store' }).then((x) => x.json());
+        if (!defaults) {
+          try {
+            defaults = await fetch(`defaults.json?v=${Date.now()}`, { cache: 'no-store', signal: timeoutSignal(15000) }).then((x) => x.json());
+          } catch {
+            throw new Error('не открылся файл настроек панели — проверь интернет');
+          }
+        }
         const file = await gh('GET', `${REPO}/contents/content.json?ref=${encodeURIComponent(branch)}`);
         contentSha = file.sha;
         return { content: SCHEMA.sanitizeContent(JSON.parse(b64ToText(file.content)), defaults), problem: null };
@@ -2100,14 +2113,28 @@
     password.focus();
   }
 
+  // пока панель стоит на заставке — пишем на ней, что происходит, вместо вечного «загрузка…»
+  function bootStatus(text) {
+    if (app.className === 'boot' && !app.querySelector('button')) app.textContent = text;
+  }
+
+  function bootFailed(message) {
+    app.className = 'boot';
+    app.replaceChildren(h('div', { class: 'auth' },
+      h('p', { class: 'banner', text: message }),
+      h('button', { class: 'btn btn--primary', type: 'button', onclick: () => { app.textContent = 'загрузка…'; boot(); } }, 'Попробовать ещё раз')));
+  }
+
   async function boot() {
+    const slow = setTimeout(() => bootStatus(GH ? 'Подключаюсь к GitHub — сегодня он отвечает медленно…' : 'Сервер отвечает медленно…'), 4000);
     try {
       S.session = await B.session();
     } catch (err) {
-      app.className = 'boot';
-      app.textContent = err.message;
+      clearTimeout(slow);
+      bootFailed(err.message);
       return;
     }
+    if (S.session.authProblem || !S.session.setUp || !S.session.loggedIn) clearTimeout(slow);
     if (S.session.authProblem) {
       app.className = 'boot';
       app.replaceChildren(h('p', { class: 'banner', text: S.session.authProblem }));
@@ -2120,12 +2147,11 @@
       data = await B.loadContent();
     } catch (err) {
       // без этого панель навсегда оставалась на «загрузка…»
-      app.className = 'boot';
-      app.replaceChildren(h('div', { class: 'auth' },
-        h('p', { class: 'banner', text: `Не получилось загрузить содержимое сайта: ${err.message}` }),
-        h('button', { class: 'btn btn--primary', type: 'button', onclick: () => boot() }, 'Попробовать ещё раз')));
+      clearTimeout(slow);
+      bootFailed(`Не получилось загрузить содержимое сайта: ${err.message}`);
       return;
     }
+    clearTimeout(slow);
     S.content = data.content;
     S.saved = JSON.stringify(data.content);
     S.problem = data.problem;
