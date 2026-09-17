@@ -146,6 +146,52 @@
     return typeof u === 'string' && /^\/(uploads|music)\//.test(u) ? u.slice(1) : u;
   }
 
+  // ---------------------------------------------------------- лёгкие картинки
+  // Свои загрузки бывают по 5–8 МБ, а фото из VK приходят оригиналами на 2–5 МБ.
+  // В сетке показываем уменьшенные копии, оригинал грузим только при просмотре.
+  // Копии своих загрузок лежат в uploads/thumbs/ (их делает панель); если копии нет — берём оригинал.
+
+  var THUMBS = window.LISI_THUMBS || '';
+  var noPreview = {};
+
+  // VK отдаёт фото любой ширины из списка as по параметру cs
+  function vkSized(src, px) {
+    if (!/^https:\/\/[\w.-]+\.(vkuserphoto\.ru|userapi\.com)\//.test(src)) return src;
+    try {
+      var u = new URL(src);
+      var widths = (u.searchParams.get('as') || '').split(',').map(function (s) { return parseInt(s, 10); }).filter(Boolean);
+      if (!u.searchParams.get('cs') || !widths.length) return src;
+      widths.sort(function (a, b) { return a - b; });
+      u.searchParams.set('cs', (widths.filter(function (w) { return w >= px; })[0] || widths[widths.length - 1]) + 'x0');
+      return u.href;
+    } catch (e) {
+      return src;
+    }
+  }
+
+  function preview(src, px) {
+    if (!src || noPreview[src]) return src;
+    var own = THUMBS && /^uploads\/(img-[\w-]+)\.(png|jpe?g|webp|avif)$/i.exec(src);
+    return own ? THUMBS + own[1] + '.webp' : vkSized(src, px);
+  }
+
+  // если уменьшенная копия не открылась — показываем оригинал, и только потом сдаёмся
+  function setImage(img, src, px, onFail) {
+    var small = preview(src, px);
+    var fallback = small === src;
+    img.onerror = function () {
+      if (!fallback) {
+        fallback = true;
+        noPreview[src] = true;
+        img.src = src;
+        return;
+      }
+      img.onerror = null;
+      if (onFail) onFail();
+    };
+    img.src = small;
+  }
+
   function localize(d) {
     d.profile.avatar = asset(d.profile.avatar);
     d.profile.cover = asset(d.profile.cover);
@@ -168,9 +214,9 @@
   $('greeting').textContent = profile.greeting;
   $('orderButtonText').textContent = profile.orderButton || 'заказать арт';
   if (profile.avatar) {
-    $('avatar').src = profile.avatar;
-    $('gateAvatar').src = profile.avatar;
-    $('discImg').src = profile.avatar;
+    setImage($('avatar'), profile.avatar, 480);
+    setImage($('gateAvatar'), profile.avatar, 480);
+    setImage($('discImg'), profile.avatar, 480);
   }
   $('avatar').alt = profile.name;
   if (profile.cover) $('cover').style.backgroundImage = 'url(' + JSON.stringify(profile.cover) + ')';
@@ -308,16 +354,15 @@
     var sheet = $('sheet');
     sheet.hidden = !cat.sheet;
     if (cat.sheet) {
-      $('sheetImg').src = cat.sheet;
-      $('sheetImg').onerror = function () { sheet.hidden = true; };
-      sheet.onclick = function () { openLightbox([cat.sheet], 0); };
+      setImage($('sheetImg'), cat.sheet, 720, function () { sheet.hidden = true; });
+      sheet.onclick = function () { openLightbox([cat.sheet], 0, 720); };
     }
 
     var gallery = $('gallery');
     gallery.replaceChildren();
     var shown = expanded ? cat.images : cat.images.slice(0, galleryPreview());
     shown.forEach(function (src, i) {
-      var img = el('img', { src: src, alt: cat.title + ' — работа ' + (i + 1), decoding: 'async' });
+      var img = el('img', { alt: cat.title + ' — работа ' + (i + 1), decoding: 'async' });
       var btn = el('button', { class: 'shot', type: 'button', 'aria-label': 'Открыть работу ' + (i + 1) }, img);
       if (ratios[src]) {
         btn.dataset.ratio = ratios[src];
@@ -330,8 +375,8 @@
         img.classList.add('is-loaded');
         scheduleLayout();
       });
-      img.addEventListener('error', function () { btn.remove(); scheduleLayout(); });
-      btn.addEventListener('click', function () { openLightbox(cat.images, i); });
+      setImage(img, src, 720, function () { btn.remove(); scheduleLayout(); });
+      btn.addEventListener('click', function () { openLightbox(cat.images, i, 720); });
       gallery.append(btn);
     });
     if (!cat.images.length) gallery.append(el('p', { class: 'gallery__empty', text: 'примеры скоро появятся ✦' }));
@@ -462,8 +507,8 @@
       var card = single
         ? el('a', { class: 'product', href: links[0].url, target: '_blank', rel: 'noopener noreferrer' })
         : el('button', { class: 'product', type: 'button', 'aria-haspopup': 'dialog' });
-      var img = el('img', { src: it.image, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
-      img.addEventListener('error', function () { img.style.visibility = 'hidden'; });
+      var img = el('img', { alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+      setImage(img, it.image, 540, function () { img.style.visibility = 'hidden'; });
       var markets = el('span', { class: 'product__markets' });
       links.forEach(function (l) {
         var m = MARKETS[l.market] || MARKETS.other;
@@ -528,7 +573,7 @@
 
   function openPicker(it, trigger) {
     pickerFocus = trigger;
-    $('pickerImg').src = it.image;
+    setImage($('pickerImg'), it.image, 540);
     $('pickerTitle').textContent = it.title;
     $('pickerSub').textContent = it.subtitle;
     var list = $('pickerList');
@@ -573,11 +618,25 @@
 
   // ---------------------------------------------------------- просмотр работ
 
-  var lb = { images: [], index: 0, lastFocus: null };
+  var lb = { images: [], index: 0, px: 720, lastFocus: null };
 
   function showLightbox() {
     var img = $('lbImg');
-    img.src = lb.images[lb.index];
+    var src = lb.images[lb.index];
+    // уменьшенная копия уже скачана сеткой — показываем её сразу, а оригинал подменяет её, когда догрузится
+    // фото из VK на 2560 px ни одному экрану не нужны — хватает 1440
+    var large = vkSized(src, 1440);
+    setImage(img, src, lb.px);
+    if (img.getAttribute('src') !== large) {
+      var full = new Image();
+      full.onload = function () {
+        if (!$('lightbox').hidden && lb.images[lb.index] === src) {
+          img.onerror = null;
+          img.src = large;
+        }
+      };
+      full.src = large;
+    }
     img.style.animation = 'none';
     void img.offsetWidth;
     img.style.animation = '';
@@ -587,9 +646,10 @@
     $('lbNext').hidden = single;
   }
 
-  function openLightbox(images, index) {
+  function openLightbox(images, index, px) {
     lb.images = images;
     lb.index = index;
+    lb.px = px || 720;
     lb.lastFocus = document.activeElement;
     $('lightbox').hidden = false;
     syncScrollLock();

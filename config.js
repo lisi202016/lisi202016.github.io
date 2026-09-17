@@ -3,3 +3,5 @@ window.LISI_STATS = {
   "url": "https://qjimzeakptpoztcmkxdx.supabase.co/rest/v1/events",
   "key": "sb_publishable_JvEXLQuz5A0PDhaKBp-OUg_0IiubiTv"
 };
+// Уменьшенные копии загруженных картинок (их делает панель): сетки грузят их вместо оригиналов.
+window.LISI_THUMBS = 'uploads/thumbs/';
