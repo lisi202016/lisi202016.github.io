@@ -1092,7 +1092,7 @@
     S.onChange = drawPreview;
   }
 
-  const MUSIC_BOX = { src: '/music/music-box.wav', title: 'Музыкальная шкатулка', artist: '', startAt: 0, volume: 0.45 };
+  const MUSIC_BOX = { src: '/music/music-box.m4a', title: 'Музыкальная шкатулка', artist: '', startAt: 0, volume: 0.45 };
 
   function renderMusic(root) {
     const m = S.content.music;
@@ -1354,6 +1354,17 @@
       h('div', { class: 'inline' }, urlInput, h('button', { class: 'btn btn--soft', type: 'button', onclick: addUrl }, 'Добавить'), counter));
   }
 
+  // как пункт прайса считается в калькуляторе на сайте — то же угадывание, что в app.js
+  const PRICE_KIND_NAMES = { base: 'размер, выбрать один', choice: 'на выбор, как фон', add: 'добавка', each: 'за каждого, счётчик', none: 'не считать' };
+  function guessPriceKind(p) {
+    const price = String(p.price || '');
+    if (!/\d/.test(price)) return 'none';
+    if (/%/.test(price)) return /персонаж|character|челов|ещё од|еще од/i.test(p.label) ? 'each' : 'add';
+    if (/фон|background/i.test(p.label)) return 'choice';
+    if (/^\s*\+/.test(price)) return 'add';
+    return 'base';
+  }
+
   function renderOrders(root) {
     const c = S.content.commissions;
     root.append(head('Заказы', 'Статус, цены, примеры работ и правила.'));
@@ -1381,9 +1392,25 @@
           }, 'danger'));
         cats.append(card(header,
           h('h4', { class: 'mini', text: 'Цены' }),
-          listEditor(cat.prices, (p) => h('div', { class: 'price-row' },
-            input(p, 'label', { max: 60, placeholder: 'что именно' }),
-            input(p, 'price', { max: 30, placeholder: '1000 ₽' })),
+          h('p', { class: 'field__hint', text: 'На сайте прайс работает как калькулятор: посетитель отмечает пункты и видит примерную сумму, а кнопка связи копирует текст заказа. «Как считать» обычно угадывается само по тексту.' }),
+          listEditor(cat.prices, (p) => {
+            const kind = h('select', { class: 'price-kind', title: 'Как считать в калькуляторе', 'aria-label': 'Как считать в калькуляторе' });
+            const fill = () => {
+              kind.replaceChildren(...[['', `авто: ${PRICE_KIND_NAMES[guessPriceKind(p)]}`], ...Object.entries(PRICE_KIND_NAMES)]
+                .map(([value, text]) => h('option', { value, text })));
+              kind.value = p.kind || '';
+            };
+            fill();
+            kind.addEventListener('change', () => {
+              if (kind.value) p.kind = kind.value;
+              else delete p.kind;
+              changed();
+            });
+            return h('div', { class: 'price-row' },
+              input(p, 'label', { max: 60, placeholder: 'что именно', onInput: fill }),
+              input(p, 'price', { max: 30, placeholder: '1000 ₽', onInput: fill }),
+              kind);
+          },
           { empty: 'Цен нет — на сайте будет «цены уточняй в личке»', addLabel: 'Добавить цену', make: () => ({ id: rid(), label: '', price: '' }), max: 12 }),
           h('h4', { class: 'mini', text: 'Прайс-лист' }),
           imageField('Картинка с прайсом', cat, 'sheet', { shape: 'wide', hint: 'Необязательно. На сайте стоит над примерами и открывается целиком по клику.' }),

@@ -252,7 +252,8 @@ body.is-sorting, body.is-sorting * { cursor: grabbing !important; -webkit-user-s
 .vis[aria-pressed="false"] { color: #c0a3b1; }
 .fact-row { display: grid; grid-template-columns: 62px minmax(80px, 0.6fr) 1fr; gap: 8px; }
 .fact-row .emoji { padding-inline: 4px; font-size: 18px; text-align: center; }
-.price-row { display: grid; grid-template-columns: 1fr 130px; gap: 8px; }
+.price-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 190px; gap: 8px; }
+.price-kind { min-width: 0; font-size: 13px; }
 
 .preview-links { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px; border-radius: 16px; background: var(--pink-50); }
 .preview-links:empty::before { content: "Пока ни одной видимой ссылки"; color: var(--soft); font-size: 14px; }
@@ -564,7 +565,8 @@ select { appearance: none; padding-right: 32px; background: var(--pink-50) url("
   .link-row .url { grid-column: 1 / -1; order: 5; }
   .fact-row { grid-template-columns: 56px 1fr; }
   .fact-row .grow { grid-column: 1 / -1; }
-  .price-row { grid-template-columns: 1fr 100px; }
+  .price-row { grid-template-columns: minmax(0, 1fr) 100px; }
+  .price-kind { grid-column: 1 / -1; }
   .image-field__row { align-items: flex-start; }
   .thumb--wide { width: 110px; height: 70px; }
   .thumb--round { width: 72px; height: 72px; }

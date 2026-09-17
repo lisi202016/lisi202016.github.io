@@ -13,7 +13,7 @@
   },
   "music": {
     "enabled": true,
-    "src": "/music/music-box.wav",
+    "src": "/music/music-box.m4a",
     "title": "Музыкальная шкатулка",
     "artist": "заглушка — поменяй в панели",
     "volume": 0.45,
