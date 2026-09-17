@@ -18,6 +18,8 @@
   const randomId = () => Math.random().toString(36).slice(2, 12);
   const id = (v) => (typeof v === 'string' && /^[\w-]{1,40}$/.test(v) ? v : randomId());
   const list = (v, def, max) => (Array.isArray(v) ? v : def).slice(0, max);
+  // размер (выбрать один), вариант на выбор вроде фона, добавка, «за каждого», не считать
+  const PRICE_KINDS = ['base', 'choice', 'add', 'each', 'none'];
 
   // http(s)-адрес, mailto (если разрешено) или свой файл /uploads/… и /music/…
   function url(v, { mailto = false } = {}) {
@@ -66,7 +68,8 @@
     const M = sub('music');
     const music = {
       enabled: bool(M.enabled, d.music.enabled),
-      src: has(M, 'src') ? url(M.src) : d.music.src,
+      // встроенная шкатулка была WAV на 4 МБ, теперь это тот же трек в .m4a на 0,5 МБ
+      src: has(M, 'src') ? url(M.src).replace(/^\/music\/music-box\.wav$/, '/music/music-box.m4a') : d.music.src,
       title: line(M.title, 100, d.music.title),
       artist: line(M.artist, 100, d.music.artist),
       volume: num(M.volume, 0, 1, d.music.volume),
@@ -118,7 +121,11 @@
           sheet: url(cat.sheet),
           prices: list(cat.prices, [], 12)
             .filter(isObj)
-            .map((p) => ({ id: id(p.id), label: line(p.label, 60), price: line(p.price, 30) })),
+            .map((p) => {
+              // kind — как пункт считается в калькуляторе на сайте; пусто — угадать по тексту
+              const kind = PRICE_KINDS.includes(p.kind) ? p.kind : '';
+              return { id: id(p.id), label: line(p.label, 60), price: line(p.price, 30), ...(kind ? { kind } : {}) };
+            }),
           images: list(cat.images, [], 60)
             .map((src) => url(src))
             .filter(Boolean),
