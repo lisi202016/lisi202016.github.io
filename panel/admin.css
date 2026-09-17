@@ -367,6 +367,72 @@ select { appearance: none; padding-right: 32px; background: var(--pink-50) url("
 .mlink-row { display: grid; grid-template-columns: 160px minmax(0, 1fr) 130px; gap: 8px; }
 .btn--sm { padding: 8px 12px; font-size: 13px; }
 
+/* статистика */
+.stats-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px; background: #fff; box-shadow: 0 1px 0 var(--line); }
+.seg__btn { padding: 8px 14px; border: 0; border-radius: 10px; background: none; color: var(--soft); font: 700 13px/1 var(--heading); cursor: pointer; }
+.seg__btn:hover { color: var(--ink); background: var(--pink-50); }
+.seg__btn[aria-pressed="true"] { background: var(--pink-100); color: var(--rose-deep); }
+.stats { display: grid; gap: 16px; transition: opacity 0.2s; }
+.stats > .card { margin: 0; }
+.stats.is-loading { opacity: 0.5; pointer-events: none; }
+.stats-grid { gap: 16px; }
+.stats-grid > .card { margin: 0; align-content: start; }
+.stats-privacy { margin: 14px 2px 0; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { display: grid; gap: 2px; padding: 16px 18px; border-radius: var(--radius); background: #fff; box-shadow: 0 1px 0 var(--line), 0 14px 30px -26px rgba(140, 36, 76, 0.5); }
+.tile__label { font-size: 13px; font-weight: 700; color: var(--soft); }
+.tile__value { font: 700 30px/1.15 var(--body); color: var(--ink); }
+.tile__note { font-size: 12.5px; color: var(--soft); }
+
+/* min-width: 0 — иначе SVG прежней ширины распирает сетку, и страница уезжает вбок */
+.main, .card > *, .stats > *, .chart, .chart__plot { min-width: 0; }
+.chart { display: grid; gap: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--soft); }
+.legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.legend__key { display: inline-block; flex: none; width: 14px; height: 2px; border-radius: 2px; background: var(--c); }
+.chart__plot { position: relative; overflow: hidden; outline-offset: 4px; }
+.chart__plot svg { display: block; overflow: visible; }
+.chart__grid { stroke: #f1e6eb; stroke-width: 1; }
+.chart__tick { fill: #9a8290; font: 600 11px var(--body); font-variant-numeric: tabular-nums; }
+.chart__cross { stroke: #cdb8c2; stroke-width: 1; }
+.chart__tip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  width: 190px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 30px -12px rgba(80, 20, 40, 0.45), 0 0 0 1px var(--line);
+  font-size: 13px;
+  pointer-events: none;
+}
+.chart__date { font-size: 12px; color: var(--soft); }
+.chart__row { display: flex; align-items: center; gap: 7px; color: var(--soft); }
+.chart__row b { min-width: 26px; font-size: 15px; color: var(--ink); }
+.chart__table summary { font-size: 13px; font-weight: 700; color: var(--rose-deep); cursor: pointer; }
+
+.bars { display: grid; gap: 12px; }
+.bars__head { display: flex; align-items: center; gap: 8px; min-width: 0; margin-bottom: 5px; }
+.bars__label { flex: 1; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.bars__value { font-size: 14px; font-variant-numeric: tabular-nums; }
+.bars__note { min-width: 88px; font-size: 12px; color: var(--soft); text-align: right; white-space: nowrap; }
+.bars__track { height: 8px; }
+.bars__fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--rose); }
+.bars .mkb { width: 22px; height: 22px; }
+
+.who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.table-scroll { overflow-x: auto; }
+.stats-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.stats-table th { padding: 8px 10px; border-bottom: 1px solid var(--line-strong); color: var(--soft); font-size: 12px; font-weight: 800; text-align: left; white-space: nowrap; }
+.stats-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.stats-table tr:last-child td { border-bottom: 0; }
+.who-cell { display: inline-flex; align-items: center; gap: 8px; }
+.who-cell .mkb { width: 20px; height: 20px; }
+.chart__table .stats-table { margin-top: 8px; }
+
 .cat__head { display: flex; align-items: center; gap: 4px; }
 .cat__head input { flex: 1; font: 700 17px/1.2 var(--heading); }
 
@@ -454,7 +520,8 @@ select { appearance: none; padding-right: 32px; background: var(--pink-50) url("
 
 @media (max-width: 860px) {
   .shell { grid-template-columns: 1fr; }
-  .side { z-index: 30; flex-direction: row; align-items: center; gap: 6px; height: auto; padding: 8px 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .side { z-index: 30; flex-direction: row; align-items: center; gap: 6px; height: auto; padding: 8px 10px; overflow-x: auto; scrollbar-width: none; border-right: 0; border-bottom: 1px solid var(--line); }
+  .side::-webkit-scrollbar { display: none; }
   .brand { padding: 0; }
   .brand div { display: none; }
   .brand img { width: 36px; height: 36px; }
@@ -479,6 +546,10 @@ select { appearance: none; padding-right: 32px; background: var(--pink-50) url("
   .image-field__row { align-items: flex-start; }
   .thumb--wide { width: 110px; height: 70px; }
   .thumb--round { width: 72px; height: 72px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile__value { font-size: 24px; }
+  .who { grid-template-columns: 1fr; }
+  .bars__note { min-width: 0; }
   .merch-row__head { flex-wrap: wrap; }
   .merch-row__meta { flex-basis: calc(100% - 60px); }
   .merch-row__mk { margin-left: 54px; }

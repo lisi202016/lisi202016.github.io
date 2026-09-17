@@ -17,6 +17,7 @@
     { id: 'about', title: 'Обо мне', icon: 'heart', render: renderAbout },
     { id: 'orders', title: 'Заказы', icon: 'brush', render: renderOrders },
     { id: 'merch', title: 'Мерч', icon: 'bag', render: renderMerch },
+    { id: 'stats', title: 'Статистика', icon: 'chart', render: renderStats },
     { id: 'files', title: 'Файлы', icon: 'folder', render: renderFiles },
     { id: 'security', title: 'Безопасность', icon: 'lock', render: renderSecurity },
   ];
@@ -46,6 +47,8 @@
     brush: 'M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20zM13.5 7.5l3 3',
     folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
     bag: 'M5 8h14l-1 12H6L5 8zM9 8V6a3 3 0 0 1 6 0v2',
+    chart: 'M4 20V11M10 20V5M16 20v-6M3 20h18',
+    refresh: 'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7',
     lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
     up: 'M6 15l6-6 6 6',
     down: 'M6 9l6 6 6-6',
@@ -157,6 +160,10 @@
     return data;
   }
 
+  function timeoutSignal(ms) {
+    return typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined;
+  }
+
   function xhrSend(method, url, headers, body, onProgress) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -258,6 +265,8 @@
           headers: body ? { ...headers(), 'Content-Type': 'application/json' } : headers(),
           body: body ? JSON.stringify(body) : undefined,
           cache: 'no-store',
+          // без таймаута зависшая сеть навсегда оставляла панель на «загрузка…»
+          signal: timeoutSignal(30000),
         });
       } catch {
         throw new Error('GitHub не отвечает — проверь интернет');
@@ -353,6 +362,28 @@
             .filter((f) => f.type === 'file')
             .map((f) => ({ name: f.name, url: `/uploads/${f.name}`, size: f.size, mtime: null, sha: f.sha, used: used.includes(`"/uploads/${f.name}"`) })),
         };
+      },
+      async stats(days) {
+        let zone = 'Europe/Moscow';
+        try {
+          zone = Intl.DateTimeFormat().resolvedOptions().timeZone || zone;
+        } catch {}
+        let res;
+        try {
+          res = await fetch(`${CONFIG.stats.endpoint}?days=${days}&tz=${encodeURIComponent(zone)}`, {
+            headers: { 'x-github-token': token },
+            cache: 'no-store',
+            signal: timeoutSignal(30000),
+          });
+        } catch {
+          throw new Error('Сервис статистики не отвечает — проверь интернет');
+        }
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {}
+        if (!res.ok) throw new Error((data && data.error) || `Ошибка ${res.status}`);
+        return data;
       },
       async deleteUpload(file) {
         if (file.used) throw new Error('Файл используется на сайте — сначала убери его оттуда и сохрани');
@@ -685,10 +716,15 @@
           redraw();
         }),
       }, brandIcon(link.type));
-      const openLink = h('a', { class: 'icon-btn', href: link.url || '#', target: '_blank', rel: 'noopener noreferrer', title: 'Открыть ссылку', 'aria-disabled': link.url ? null : 'true' }, ui('external'));
+      // кнопка «открыть» получает адрес, только когда он настоящий: javascript: и прочее сюда не попадёт
+      const openable = (v) => !!v && validUrl(v);
+      const openLink = h('a', { class: 'icon-btn', href: openable(link.url) ? link.url : '#', target: '_blank', rel: 'noopener noreferrer', title: 'Открыть ссылку', 'aria-disabled': openable(link.url) ? null : 'true' }, ui('external'));
       const url = input(link, 'url', {
         url: true, mail: true, class: 'url', placeholder: link.type === 'email' ? 'почта@пример.ru' : 'https://…',
-        onInput: (v) => { openLink.href = v || '#'; openLink.setAttribute('aria-disabled', v ? 'false' : 'true'); },
+        onInput: (v) => {
+          openLink.href = openable(v) ? v : '#';
+          openLink.setAttribute('aria-disabled', openable(v) ? 'false' : 'true');
+        },
       });
       const vis = h('button', {
         class: 'icon-btn vis', type: 'button', 'aria-pressed': String(link.visible), title: link.visible ? 'Видна на сайте — скрыть' : 'Скрыта — показать',
@@ -1108,6 +1144,252 @@
     draw();
   }
 
+  // ---------------------------------------------------------------- статистика
+
+  const nf = new Intl.NumberFormat('ru-RU');
+  const plural = (n, one, few, many) => {
+    const a = n % 10;
+    const b = n % 100;
+    if (a === 1 && b !== 11) return one;
+    return a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
+  };
+  const peopleText = (n) => `${nf.format(n)} ${plural(n, 'человек', 'человека', 'человек')}`;
+  const ZONE_NAMES = {
+    'Europe/Moscow': 'Москва', 'Europe/Kaliningrad': 'Калининград', 'Europe/Samara': 'Самара', 'Europe/Volgograd': 'Волгоград',
+    'Europe/Saratov': 'Саратов', 'Europe/Ulyanovsk': 'Ульяновск', 'Europe/Astrakhan': 'Астрахань', 'Europe/Kirov': 'Киров',
+    'Asia/Yekaterinburg': 'Екатеринбург', 'Asia/Omsk': 'Омск', 'Asia/Novosibirsk': 'Новосибирск', 'Asia/Barnaul': 'Барнаул',
+    'Asia/Tomsk': 'Томск', 'Asia/Novokuznetsk': 'Новокузнецк', 'Asia/Krasnoyarsk': 'Красноярск', 'Asia/Irkutsk': 'Иркутск',
+    'Asia/Chita': 'Чита', 'Asia/Yakutsk': 'Якутск', 'Asia/Vladivostok': 'Владивосток', 'Asia/Sakhalin': 'Сахалин',
+    'Asia/Magadan': 'Магадан', 'Asia/Kamchatka': 'Камчатка', 'Europe/Minsk': 'Минск', 'Europe/Kiev': 'Киев', 'Europe/Kyiv': 'Киев',
+    'Asia/Almaty': 'Алматы', 'Asia/Tashkent': 'Ташкент', 'Asia/Bishkek': 'Бишкек', 'Asia/Tbilisi': 'Тбилиси', 'Asia/Yerevan': 'Ереван',
+    'Asia/Baku': 'Баку', 'Europe/Riga': 'Рига', 'Europe/Vilnius': 'Вильнюс', 'Europe/Tallinn': 'Таллин', 'Europe/Berlin': 'Берлин',
+    'Europe/Istanbul': 'Стамбул',
+  };
+  const zoneName = (z) => ZONE_NAMES[z] || (z === 'unknown' ? 'не определился' : z.split('/').pop().replace(/_/g, ' '));
+  const DEVICE_NAMES = { mobile: 'Телефон', tablet: 'Планшет', desktop: 'Компьютер', unknown: 'Не определилось' };
+  const localDay = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const shortDate = (day) => `${day.slice(8, 10)}.${day.slice(5, 7)}`;
+  const longDate = (day) => new Date(`${day}T12:00:00`).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' });
+  const STATS_SERIES = [
+    { key: 'visits', label: 'Заходы', color: '#2a78d6' },
+    { key: 'clicks', label: 'Переходы по ссылкам', color: '#c8567c' },
+  ];
+
+  function statTile(label, value, note) {
+    return h('div', { class: 'tile' },
+      h('span', { class: 'tile__label', text: label }),
+      h('b', { class: 'tile__value', text: nf.format(value) }),
+      note && h('span', { class: 'tile__note', text: note }));
+  }
+
+  function targetIcon(type, target) {
+    if (type === 'market') return marketBadge(target);
+    const def = type === 'contact' ? { color: '#C8567C', stroke: true, path: UI_PATHS.brush } : ICONS[target] || ICONS.website;
+    return h('i', { class: 'mkb', style: `--mk:${def.color};--mk-text:#fff` }, svgFrom(def));
+  }
+
+  // Горизонтальные полосы: одна серия — один цвет, значение у конца полосы
+  function barList(rows, empty) {
+    if (!rows.length) return h('p', { class: 'muted', text: empty });
+    const max = Math.max(1, ...rows.map((r) => r.value));
+    return h('div', { class: 'bars' }, rows.map((r) => {
+      const fill = h('span', { class: 'bars__fill' });
+      fill.style.width = `${Math.max(1.5, (r.value / max) * 100)}%`;
+      return h('div', { class: 'bars__row' },
+        h('div', { class: 'bars__head' }, r.icon || null, h('span', { class: 'bars__label', text: r.label }),
+          h('b', { class: 'bars__value', text: nf.format(r.value) }), r.note && h('span', { class: 'bars__note', text: r.note })),
+        h('div', { class: 'bars__track' }, fill));
+    }));
+  }
+
+  // Линии «заходы» и «переходы» по дням: одна ось, перекрестие с подсказкой, таблица рядом
+  function dailyChart(daily, days) {
+    const byDay = new Map(daily.map((d) => [d.day, d]));
+    const today = new Date();
+    const points = Array.from({ length: days }, (_, i) => {
+      const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1 - i));
+      const key = localDay(date);
+      const row = byDay.get(key);
+      return { day: key, visits: row ? row.visits : 0, clicks: row ? row.clicks : 0 };
+    });
+    const NS = 'http://www.w3.org/2000/svg';
+    const svgEl = (tag, attrs) => {
+      const node = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+      return node;
+    };
+    const plot = h('div', { class: 'chart__plot', tabindex: '0', role: 'img', 'aria-label': 'График заходов и переходов по дням. Стрелки влево и вправо переключают день.' });
+    const tip = h('div', { class: 'chart__tip', hidden: true });
+    let geometry = null;
+    let active = points.length - 1;
+
+    function draw() {
+      const W = Math.max(280, plot.clientWidth);
+      const H = 230;
+      const pad = { l: 40, r: 14, t: 14, b: 30 };
+      let max = Math.max(2, ...points.flatMap((p) => [p.visits, p.clicks]));
+      const e = 10 ** Math.floor(Math.log10(max));
+      max = [1, 2, 5, 10].map((f) => f * e).find((v) => v >= max);
+      if (max % 2) max *= 2;
+      const x = (i) => pad.l + (points.length === 1 ? (W - pad.l - pad.r) / 2 : (i * (W - pad.l - pad.r)) / (points.length - 1));
+      const y = (v) => pad.t + (H - pad.t - pad.b) * (1 - v / max);
+      const svg = svgEl('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' });
+      [0, max / 2, max].forEach((v) => {
+        svg.append(svgEl('line', { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v), class: 'chart__grid' }));
+        const t = svgEl('text', { x: pad.l - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'chart__tick' });
+        t.textContent = nf.format(v);
+        svg.append(t);
+      });
+      [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])].forEach((i) => {
+        const anchor = i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle';
+        const t = svgEl('text', { x: x(i), y: H - 8, 'text-anchor': anchor, class: 'chart__tick' });
+        t.textContent = shortDate(points[i].day);
+        svg.append(t);
+      });
+      STATS_SERIES.forEach((s) => {
+        const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[s.key]).toFixed(1)}`).join('');
+        svg.append(svgEl('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      });
+      const cross = svgEl('line', { y1: pad.t, y2: H - pad.b, class: 'chart__cross' });
+      const dots = STATS_SERIES.map((s) => svgEl('circle', { r: 4, fill: s.color, stroke: '#fff', 'stroke-width': 2 }));
+      svg.append(cross, ...dots);
+      plot.replaceChildren(svg, tip);
+      geometry = { W, x, y, cross, dots, pad };
+      show(active, !tip.hidden);
+    }
+
+    function show(i, visible) {
+      if (!geometry) return;
+      active = Math.max(0, Math.min(points.length - 1, i));
+      const p = points[active];
+      const { W, x, y, cross, dots, pad } = geometry;
+      cross.setAttribute('x1', x(active));
+      cross.setAttribute('x2', x(active));
+      dots.forEach((dot, k) => {
+        dot.setAttribute('cx', x(active));
+        dot.setAttribute('cy', y(p[STATS_SERIES[k].key]));
+      });
+      [cross, ...dots].forEach((n) => { n.style.visibility = visible ? 'visible' : 'hidden'; });
+      tip.hidden = !visible;
+      if (!visible) return;
+      tip.replaceChildren(h('span', { class: 'chart__date', text: longDate(p.day) }),
+        ...STATS_SERIES.map((s) => h('span', { class: 'chart__row' },
+          h('b', { text: nf.format(p[s.key]) }), h('i', { class: 'legend__key', style: `--c:${s.color}` }), h('span', { text: s.label }))));
+      const left = x(active) + 14 + 190 > W ? x(active) - 14 - 190 : x(active) + 14;
+      tip.style.left = `${Math.max(0, left)}px`;
+      tip.style.top = `${pad.t}px`;
+    }
+
+    plot.addEventListener('pointermove', (ev) => {
+      if (!geometry) return;
+      const rect = plot.getBoundingClientRect();
+      const px = ev.clientX - rect.left;
+      const span = (geometry.W - geometry.pad.l - geometry.pad.r) / Math.max(1, points.length - 1);
+      show(Math.round((px - geometry.pad.l) / span), true);
+    });
+    plot.addEventListener('pointerleave', () => show(active, false));
+    plot.addEventListener('focus', () => show(active, true));
+    plot.addEventListener('blur', () => show(active, false));
+    plot.addEventListener('keydown', (ev) => {
+      if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+        ev.preventDefault();
+        show(active + (ev.key === 'ArrowRight' ? 1 : -1), true);
+      }
+    });
+    if (window.ResizeObserver) new ResizeObserver(() => draw()).observe(plot);
+    // не requestAnimationFrame: в фоновой вкладке он не срабатывает, и график оставался бы пустым
+    setTimeout(draw, 0);
+
+    const table = h('table', { class: 'stats-table' },
+      h('thead', null, h('tr', null, h('th', { text: 'День' }), ...STATS_SERIES.map((s) => h('th', { text: s.label })))),
+      h('tbody', null, points.slice().reverse().map((p) =>
+        h('tr', null, h('td', { text: longDate(p.day) }), h('td', { text: nf.format(p.visits) }), h('td', { text: nf.format(p.clicks) })))));
+
+    return h('div', { class: 'chart' },
+      h('div', { class: 'legend' }, STATS_SERIES.map((s) => h('span', { class: 'legend__item' }, h('i', { class: 'legend__key', style: `--c:${s.color}` }), s.label))),
+      plot,
+      h('details', { class: 'chart__table' }, h('summary', { text: 'Таблица по дням' }), table));
+  }
+
+  function renderStats(root) {
+    root.append(head('Статистика', 'Сколько людей заходит на сайт и куда они переходят: соцсети, кнопка заказа, маркеты с мерчем.'));
+    if (!GH || !CONFIG.stats) {
+      root.append(card(
+        h('p', { class: 'card__desc' }, 'Статистика собирается только на опубликованном сайте, поэтому смотреть её нужно в панели на GitHub Pages: ',
+          h('a', { href: 'https://lisi202016.github.io/panel/', target: '_blank', rel: 'noopener noreferrer', text: 'lisi202016.github.io/panel' }), '.')));
+      return;
+    }
+    const days = S.statsDays || 30;
+    const body = h('div', { class: 'stats' }, h('p', { class: 'muted', text: 'Считаю…' }));
+    const reload = h('button', { class: 'btn btn--ghost btn--sm', type: 'button', onclick: () => load() }, ui('refresh'), 'Обновить');
+    root.append(
+      h('div', { class: 'stats-bar' },
+        h('div', { class: 'seg', role: 'group', 'aria-label': 'Период' }, [7, 30, 90].map((d) =>
+          h('button', { class: 'seg__btn', type: 'button', 'aria-pressed': String(d === days), onclick: () => { S.statsDays = d; renderSection(); } }, `${d} дней`))),
+        reload),
+      body,
+      h('p', { class: 'field__hint stats-privacy', text: 'Имена и IP-адреса не собираются. «Гость» — это отдельный браузер со случайным номером; город определяется по часовому поясу устройства, поэтому он примерный.' }));
+
+    async function load() {
+      body.classList.add('is-loading');
+      reload.disabled = true;
+      let res;
+      try {
+        res = await B.stats(days);
+      } catch (err) {
+        if (!body.isConnected) return;
+        body.classList.remove('is-loading');
+        body.replaceChildren(h('p', { class: 'banner', text: err.message }));
+        reload.disabled = false;
+        return;
+      }
+      if (!body.isConnected) return;
+      body.classList.remove('is-loading');
+      reload.disabled = false;
+      const st = res.stats;
+      const t = st.totals;
+      const share = t.visitors ? Math.round((t.clickers / t.visitors) * 100) : 0;
+      const links = st.targets.map((r) => ({
+        icon: targetIcon(r.type, r.target),
+        label: r.type === 'contact' ? `Кнопка заказа · ${r.label || 'связаться'}` : r.label || (ICONS[r.target] ? ICONS[r.target].label : r.target),
+        value: r.clicks,
+        note: peopleText(r.people),
+      }));
+      const markets = st.markets.map((r) => ({ icon: targetIcon('market', r.target), label: (MARKETS[r.target] || MARKETS.other).label, value: r.clicks, note: peopleText(r.people) }));
+      const products = st.products.map((r) => ({ label: r.label || 'товар', value: r.clicks, note: peopleText(r.people) }));
+      const who = (rows, name) => rows.map((r) => ({ label: name(r.name), value: r.people }));
+
+      body.replaceChildren(
+        h('div', { class: 'tiles' },
+          statTile('Заходы', t.visits, `за ${days} дней`),
+          statTile('Гостей', t.visitors, 'разных браузеров'),
+          statTile('Переходы по ссылкам', t.clicks, 'соцсети, заказ, мерч'),
+          statTile('Кликнули хоть раз', t.clickers, t.visitors ? `${share}% гостей` : '—')),
+        card(cardTitle('По дням'), dailyChart(st.daily, days)),
+        h('div', { class: 'grid2 stats-grid' },
+          card(cardTitle('Соцсети и кнопка заказа'), barList(links, 'Пока никто не переходил')),
+          card(cardTitle('Мерч: какой маркет открывают'), barList(markets, 'Пока никто не открывал товары'))),
+        card(cardTitle('Мерч: популярные товары'), barList(products, 'Пока пусто')),
+        card(cardTitle('Кто заходит'),
+          h('div', { class: 'who' },
+            h('div', null, h('h4', { class: 'mini', text: 'Устройство' }), barList(who(st.devices, (n) => DEVICE_NAMES[n] || n), 'Нет данных')),
+            h('div', null, h('h4', { class: 'mini', text: 'Откуда пришли' }), barList(who(st.referrers, (n) => (n === 'direct' ? 'Напрямую или из закладок' : n)), 'Нет данных')),
+            h('div', null, h('h4', { class: 'mini', text: 'Город (по часовому поясу)' }), barList(who(st.zones, zoneName), 'Нет данных')))),
+        card(cardTitle('Последние переходы'), st.recent.length
+          ? h('div', { class: 'table-scroll' }, h('table', { class: 'stats-table' },
+            h('thead', null, h('tr', null, ['Когда', 'Куда', 'Гость', 'Устройство', 'Город'].map((c) => h('th', { text: c })))),
+            h('tbody', null, st.recent.map((r) => h('tr', null,
+              h('td', { text: new Date(r.at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) }),
+              h('td', null, h('span', { class: 'who-cell' }, targetIcon(r.type, r.target),
+                h('span', { text: r.type === 'market' ? `${(MARKETS[r.target] || MARKETS.other).label} · ${r.label || ''}` : r.type === 'contact' ? 'Кнопка заказа' : r.label || r.target }))),
+              h('td', { text: r.visitor ? `#${r.visitor}` : '—' }),
+              h('td', { text: DEVICE_NAMES[r.device] || '—' }),
+              h('td', { text: r.zone ? zoneName(r.zone) : '—' }))))))
+          : h('p', { class: 'muted', text: 'Пока никто никуда не переходил.' })));
+    }
+    load();
+  }
+
   async function renderFiles(root) {
     root.append(head('Файлы', 'Всё, что загружено через панель. Файлы, которых нет на сайте, можно удалить.'));
     const box = card(h('p', { class: 'muted', text: 'Загружаю список…' }));
@@ -1121,8 +1403,12 @@
     }
     if (!box.isConnected) return;
     box.replaceChildren();
-    if (isDirty()) box.append(h('p', { class: 'note', text: 'Есть несохранённые изменения. Пометка «на сайте» считается по последней сохранённой версии.' }));
     if (!files.length) return box.append(h('p', { class: 'muted', text: 'Пока ничего не загружено.' }));
+    // файл, который вставлен, но ещё не сохранён, тоже «занят» — иначе его можно удалить из-под себя
+    const draft = JSON.stringify(S.content);
+    files.forEach((f) => {
+      f.used = f.used || draft.includes(`"${f.url}"`);
+    });
     box.append(h('div', { class: 'files' }, files.map((f) => {
       const isImage = /\.(png|jpe?g|webp|gif|avif)$/i.test(f.name);
       const row = h('div', { class: 'file' },
@@ -1190,6 +1476,26 @@
 
   const isDirty = () => !!S.content && JSON.stringify(S.content) !== S.saved;
 
+  function findInvalidUrl(c) {
+    const checks = [
+      ['profile', 'аватарка', c.profile.avatar],
+      ['profile', 'фон шапки', c.profile.cover],
+      ['music', 'трек', c.music.src],
+      ['orders', 'кнопка связи', c.commissions.contactUrl],
+      ...c.links.map((l) => ['links', l.label || 'ссылка', l.url]),
+      ...c.commissions.categories.flatMap((cat) => [
+        ['orders', `прайс-лист «${cat.title}»`, cat.sheet],
+        ...cat.images.map((src) => ['orders', `пример в «${cat.title}»`, src]),
+      ]),
+      ...c.merch.items.flatMap((it) => [
+        ['merch', `картинка «${it.title || 'товар'}»`, it.image],
+        ...it.links.map((l) => ['merch', `маркет у «${it.title || 'товар'}»`, l.url]),
+      ]),
+    ];
+    const found = checks.find(([, , value]) => value && !validUrl(normalizeUrl(value, true)));
+    return found ? { section: found[0], where: found[1] } : null;
+  }
+
   function changed() {
     const bar = document.getElementById('savebar');
     if (bar) bar.hidden = !isDirty();
@@ -1199,10 +1505,14 @@
   async function save() {
     if (S.saving || !isDirty()) return;
     if (S.uploads > 0) return toast('Дождись, пока загрузятся файлы', 'error');
-    const invalid = document.querySelector('.main .is-invalid');
-    if (invalid) {
-      invalid.focus();
-      return toast('Проверь ссылки, подсвеченные красным', 'error');
+    // проверяем все разделы, а не только открытый: иначе неверная ссылка из другого
+    // раздела молча превратилась бы в пустую при сохранении
+    const bad = findInvalidUrl(S.content);
+    if (bad) {
+      if (S.section !== bad.section) go(bad.section);
+      const invalid = document.querySelector('.main .is-invalid');
+      if (invalid) invalid.focus();
+      return toast(`Проверь ссылку: ${bad.where}`, 'error');
     }
     S.saving = true;
     const btn = document.getElementById('saveBtn');
@@ -1413,7 +1723,17 @@
     }
     if (!S.session.setUp) return renderAuth('setup');
     if (!S.session.loggedIn) return renderAuth('login');
-    const data = await B.loadContent();
+    let data;
+    try {
+      data = await B.loadContent();
+    } catch (err) {
+      // без этого панель навсегда оставалась на «загрузка…»
+      app.className = 'boot';
+      app.replaceChildren(h('div', { class: 'auth' },
+        h('p', { class: 'banner', text: `Не получилось загрузить содержимое сайта: ${err.message}` }),
+        h('button', { class: 'btn btn--primary', type: 'button', onclick: () => boot() }, 'Попробовать ещё раз')));
+      return;
+    }
     S.content = data.content;
     S.saved = JSON.stringify(data.content);
     S.problem = data.problem;

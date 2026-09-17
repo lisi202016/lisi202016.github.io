@@ -3,5 +3,8 @@ window.LISI_PANEL = {
   "owner": "lisi202016",
   "repo": "lisi202016.github.io",
   "branch": "main",
-  "siteUrl": "https://lisi202016.github.io/"
+  "siteUrl": "https://lisi202016.github.io/",
+  "stats": {
+    "endpoint": "https://qjimzeakptpoztcmkxdx.supabase.co/functions/v1/site-stats"
+  }
 };
