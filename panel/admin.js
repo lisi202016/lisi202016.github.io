@@ -357,10 +357,20 @@
           throw e;
         }
         const used = S.saved;
+        const thumbs = new Map();
+        if (items.some((f) => f.type === 'dir' && f.name === 'thumbs')) {
+          try {
+            (await gh('GET', `${REPO}/contents/uploads/thumbs?ref=${encodeURIComponent(branch)}`)).forEach((t) => thumbs.set(t.name, t));
+          } catch {}
+        }
         return {
           files: items
             .filter((f) => f.type === 'file')
-            .map((f) => ({ name: f.name, url: `/uploads/${f.name}`, size: f.size, mtime: null, sha: f.sha, used: used.includes(`"/uploads/${f.name}"`) })),
+            .map((f) => {
+              const t = thumbPath(`/uploads/${f.name}`);
+              const thumb = t && thumbs.get(t.split('/').pop());
+              return { name: f.name, url: `/uploads/${f.name}`, size: f.size, mtime: null, sha: f.sha, thumb: thumb ? { name: thumb.name, sha: thumb.sha } : null, used: used.includes(`"/uploads/${f.name}"`) };
+            }),
         };
       },
       async stats(days) {
@@ -388,6 +398,15 @@
       async deleteUpload(file) {
         if (file.used) throw new Error('Файл используется на сайте — сначала убери его оттуда и сохрани');
         await gh('DELETE', `${REPO}/contents/uploads/${encodeURIComponent(file.name)}`, { message: `Панель: удалён файл ${file.name}`, sha: file.sha, branch });
+        if (file.thumb) {
+          await gh('DELETE', `${REPO}/contents/uploads/thumbs/${encodeURIComponent(file.thumb.name)}`, { message: `Панель: удалена копия ${file.thumb.name}`, sha: file.thumb.sha, branch }).catch(() => {});
+        }
+      },
+      async uploadThumb(url, blob) {
+        const path = thumbPath(url);
+        if (!path) return;
+        const body = JSON.stringify({ message: `Панель: копия для сетки ${path.split('/').pop()}`, content: bytesToB64(new Uint8Array(await blob.arrayBuffer())), branch });
+        await xhrSend('PUT', `https://api.github.com${REPO}/contents${path}`, { ...headers(), 'Content-Type': 'application/json' }, body);
       },
       async upload(file, kind, onProgress) {
         const bytes = new Uint8Array(await file.arrayBuffer());
@@ -410,14 +429,133 @@
     return `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}${u}`;
   }
 
-  function upload(file, kind, onProgress) {
-    const limitMb = B.limits[kind];
-    // слишком большой файл сервер оборвёт, и браузер покажет лишь «ошибку сети» — проверяем заранее
-    if (file.size > limitMb * 1024 * 1024) return Promise.reject(new Error(`файл больше ${limitMb} МБ`));
-    S.uploads++;
-    return B.upload(file, kind, onProgress).finally(() => {
-      S.uploads--;
+  // VK отдаёт фото любой ширины из списка as по параметру cs — оригиналы там по 2–5 МБ
+  function vkSized(src, px) {
+    if (!/^https:\/\/[\w.-]+\.(vkuserphoto\.ru|userapi\.com)\//.test(src || '')) return src;
+    try {
+      const u = new URL(src);
+      const widths = (u.searchParams.get('as') || '').split(',').map((s) => parseInt(s, 10)).filter(Boolean).sort((a, b) => a - b);
+      if (!u.searchParams.get('cs') || !widths.length) return src;
+      u.searchParams.set('cs', `${widths.find((w) => w >= px) || widths[widths.length - 1]}x0`);
+      return u.href;
+    } catch {
+      return src;
+    }
+  }
+
+  // Уменьшенная копия своей картинки: uploads/thumbs/<имя>.webp. Её делает панель при загрузке.
+  const THUMB_RE = /^\/uploads\/(img-[\w-]+)\.(png|jpe?g|webp|avif)$/i;
+  const thumbPath = (u) => {
+    const m = THUMB_RE.exec(u || '');
+    return m ? `/uploads/thumbs/${m[1]}.webp` : null;
+  };
+
+  // В панели тоже показываем лёгкие копии; если копии нет — оригинал
+  function showThumb(img, src, onFail) {
+    const full = view(src);
+    const small = (B.uploadThumb && thumbPath(src) && view(thumbPath(src))) || vkSized(full, 360);
+    let fellBack = small === full;
+    img.onerror = () => {
+      if (!fellBack) {
+        fellBack = true;
+        img.src = full;
+        return;
+      }
+      if (onFail) onFail();
+    };
+    img.src = small;
+  }
+
+  // Картинку готовим прямо в браузере: огромный оригинал ужимаем в WebP до 2560 px,
+  // а для сеток на сайте делаем копию на 1000 px. GIF не трогаем — там может быть анимация.
+  const IMAGE_MAX = 2560;
+  const THUMB_MAX = 1000;
+
+  function openImage(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img.naturalWidth && img.naturalHeight ? img : null);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
     });
+  }
+
+  function toWebp(img, maxSide, quality) {
+    let source = img;
+    let w = img.naturalWidth;
+    let hgt = img.naturalHeight;
+    const scale = Math.min(1, maxSide / Math.max(w, hgt));
+    const tw = Math.max(1, Math.round(w * scale));
+    const th = Math.max(1, Math.round(hgt * scale));
+    const canvas = (cw, ch) => Object.assign(document.createElement('canvas'), { width: cw, height: ch });
+    // сильное уменьшение за один шаг даёт «лесенку», поэтому уменьшаем вдвое, пока не подойдём близко
+    while (w / 2 >= tw * 1.4) {
+      w = Math.round(w / 2);
+      hgt = Math.round(hgt / 2);
+      const step = canvas(w, hgt);
+      const ctx = step.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(source, 0, 0, w, hgt);
+      source = step;
+    }
+    const out = canvas(tw, th);
+    const ctx = out.getContext('2d');
+    if (!ctx) return Promise.resolve(null);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, tw, th);
+    return new Promise((resolve) => {
+      try {
+        out.toBlob((blob) => resolve(blob && blob.type === 'image/webp' ? blob : null), 'image/webp', quality);
+      } catch {
+        resolve(null);
+      }
+    });
+  }
+
+  async function prepareImage(file) {
+    if (!/\.(png|jpe?g|webp|avif)$/i.test(file.name) && !/^image\/(png|jpeg|webp|avif)$/.test(file.type)) return { file, thumb: null };
+    const img = await openImage(file);
+    if (!img) return { file, thumb: null };
+    const long = Math.max(img.naturalWidth, img.naturalHeight);
+    let main = file;
+    if (file.size > 1.5 * 1024 * 1024 || long > IMAGE_MAX) {
+      const blob = await toWebp(img, IMAGE_MAX, 0.9);
+      if (blob && blob.size < file.size * 0.9) main = new File([blob], `${file.name.replace(/\.[^.]+$/, '') || 'image'}.webp`, { type: 'image/webp' });
+    }
+    const thumb = B.uploadThumb ? await toWebp(img, THUMB_MAX, 0.82) : null;
+    return { file: main, thumb };
+  }
+
+  async function upload(file, kind, onProgress) {
+    const limitMb = B.limits[kind];
+    // PNG на 12 МБ после сжатия влезет в лимит, а вот совсем огромное даже не открываем
+    if (kind !== 'image' && file.size > limitMb * 1024 * 1024) throw new Error(`файл больше ${limitMb} МБ`);
+    if (file.size > 80 * 1024 * 1024) throw new Error('файл больше 80 МБ');
+    S.uploads++;
+    try {
+      let thumb = null;
+      if (kind === 'image') ({ file, thumb } = await prepareImage(file));
+      // слишком большой файл сервер оборвёт, и браузер покажет лишь «ошибку сети» — проверяем заранее
+      if (file.size > limitMb * 1024 * 1024) throw new Error(`файл больше ${limitMb} МБ`);
+      const res = await B.upload(file, kind, onProgress);
+      if (thumb) {
+        try {
+          await B.uploadThumb(res.url, thumb);
+        } catch (err) {
+          console.warn('Копия для сетки не загрузилась — сайт покажет оригинал', err);
+        }
+      }
+      return res;
+    } finally {
+      S.uploads--;
+    }
   }
 
   function normalizeUrl(value, allowMail) {
@@ -489,6 +627,216 @@
     return h('button', { class: `icon-btn${variant ? ` icon-btn--${variant}` : ''}`, type: 'button', title, 'aria-label': title, disabled, onclick }, ui(icon));
   }
 
+  // ---------------------------------------------------------------- перетаскивание
+  // Своё, на pointer-событиях: встроенный drag-and-drop браузера не работает на телефонах.
+  // Мышью элемент берётся, как только его потянули; пальцем — после удержания ~0,3 с,
+  // чтобы обычная прокрутка страницы ничего не цепляла. За «ручку» (instant) — сразу.
+  const NOT_DRAGGABLE = 'button, input, textarea, select, option, a, label, [contenteditable], .popover';
+  const calmMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function sortable(container, { items, handle, instant, layout = 'list', ghostOf, enabled, onSort }) {
+    const kids = () => Array.from(container.children).filter((n) => n.matches(items) && !n.classList.contains('drag-ghost'));
+
+    container.addEventListener('dragstart', (e) => {
+      if (e.target.closest && e.target.closest(items)) e.preventDefault();
+    });
+
+    container.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.sortHandled || !e.isPrimary || (enabled && !enabled())) return;
+      const item = e.target.closest(items);
+      if (!item || item.parentElement !== container) return;
+      const quick = instant && e.target.closest(instant);
+      if (!quick && e.target.closest(NOT_DRAGGABLE)) return;
+      if (handle && !e.target.closest(handle)) return;
+      e.sortHandled = true;
+      if (quick) e.preventDefault();
+
+      const touch = e.pointerType !== 'mouse';
+      const start = { x: e.clientX, y: e.clientY };
+      const last = { x: e.clientX, y: e.clientY };
+      let timer = 0;
+      let drag = null;
+
+      const onTouchMove = (ev) => {
+        if (drag) ev.preventDefault();
+      };
+      const onContext = (ev) => ev.preventDefault();
+
+      function cleanup() {
+        clearTimeout(timer);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onCancel);
+        window.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('touchmove', onTouchMove, { passive: false });
+        container.removeEventListener('contextmenu', onContext);
+        item.classList.remove('is-pressing');
+      }
+
+      function begin() {
+        const from = kids().indexOf(item);
+        if (from < 0) return cleanup();
+        const source = (ghostOf && ghostOf(item)) || item;
+        const rect = source.getBoundingClientRect();
+        const ghost = source.cloneNode(true);
+        ghost.classList.add('drag-ghost');
+        ghost.removeAttribute('id');
+        Object.assign(ghost.style, { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` });
+        document.body.append(ghost);
+        item.classList.remove('is-pressing');
+        item.classList.add('is-drag-source');
+        document.body.classList.add('is-sorting');
+        const sel = window.getSelection && window.getSelection();
+        if (sel) sel.removeAllRanges();
+        if (document.activeElement && item.contains(document.activeElement)) document.activeElement.blur();
+        if (touch && navigator.vibrate) navigator.vibrate(12);
+        drag = { from, ghost, rect, home: item.nextSibling, scroll: 0, frame: 0 };
+        try {
+          container.setPointerCapture(e.pointerId);
+        } catch {}
+        follow();
+      }
+
+      // где элемент стоит по разметке — без сдвигов от анимации, иначе соседи «убегают» из-под курсора
+      function slot(n) {
+        const base = container.getBoundingClientRect();
+        const x = n.offsetParent === container ? base.left + container.clientLeft : base.left - container.offsetLeft;
+        const y = n.offsetParent === container ? base.top + container.clientTop : base.top - container.offsetTop;
+        return { left: x + n.offsetLeft, top: y + n.offsetTop, width: n.offsetWidth, height: n.offsetHeight };
+      }
+
+      function place() {
+        const nodes = kids();
+        let target = null;
+        let after = false;
+        for (const n of nodes) {
+          const box = slot(n);
+          const inX = last.x >= box.left && last.x <= box.left + box.width;
+          const inY = last.y >= box.top && last.y <= box.top + box.height;
+          if (layout === 'grid' ? inX && inY : inY) {
+            target = n;
+            after = layout === 'grid' ? last.x > box.left + box.width / 2 : last.y > box.top + box.height / 2;
+            break;
+          }
+        }
+        // в списке выше первого или ниже последнего — ставим в самое начало или конец
+        if (!target && layout !== 'grid' && nodes.length) {
+          const first = slot(nodes[0]);
+          const end = slot(nodes[nodes.length - 1]);
+          if (last.y < first.top) {
+            target = nodes[0];
+          } else if (last.y > end.top + end.height) {
+            target = nodes[nodes.length - 1];
+            after = true;
+          }
+        }
+        if (!target || target === item) return;
+        const ref = after ? target.nextSibling : target;
+        if (ref === item || (ref ? ref.previousSibling : container.lastChild) === item) return;
+        const before = new Map(nodes.map((n) => [n, n.getBoundingClientRect()]));
+        container.insertBefore(item, ref);
+        if (calmMotion.matches) return;
+        nodes.forEach((n) => {
+          const a = before.get(n);
+          const b = n.getBoundingClientRect();
+          const dx = a.left - b.left;
+          const dy = a.top - b.top;
+          if (Math.abs(dx) + Math.abs(dy) > 0.5) n.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 170, easing: 'cubic-bezier(.2,.8,.3,1)' });
+        });
+      }
+
+      function follow() {
+        if (!drag) return;
+        drag.ghost.style.transform = `translate(${last.x - start.x}px, ${last.y - start.y}px) scale(1.03)`;
+        place();
+      }
+
+      // у края экрана страница сама едет в сторону пальца
+      function autoScroll() {
+        const edge = Math.min(90, innerHeight * 0.15);
+        const speed = last.y < edge ? -(edge - last.y) : last.y > innerHeight - edge ? last.y - (innerHeight - edge) : 0;
+        if (!drag || !speed) {
+          if (drag) drag.frame = 0;
+          return;
+        }
+        window.scrollBy(0, Math.round(speed / 4));
+        follow();
+        drag.frame = requestAnimationFrame(autoScroll);
+      }
+
+      function onMove(ev) {
+        if (ev.pointerId !== e.pointerId) return;
+        last.x = ev.clientX;
+        last.y = ev.clientY;
+        const dist = Math.hypot(last.x - start.x, last.y - start.y);
+        if (!drag) {
+          if (!touch || quick) {
+            if (dist > 5) begin();
+          } else if (dist > 10) {
+            cleanup(); // палец поехал раньше, чем взял — это прокрутка
+          }
+          return;
+        }
+        ev.preventDefault();
+        follow();
+        if (!drag.frame) drag.frame = requestAnimationFrame(autoScroll);
+      }
+
+      function finish(commit) {
+        cleanup();
+        if (!drag) return;
+        const { ghost, from, home, frame, rect } = drag;
+        cancelAnimationFrame(frame);
+        drag = null;
+        if (!commit) container.insertBefore(item, home && home.parentNode === container ? home : null);
+        const to = kids().indexOf(item);
+        const box = item.getBoundingClientRect();
+        document.body.classList.remove('is-sorting');
+        // клик, который браузер пришлёт после отпускания, не должен нажать кнопку под пальцем
+        const swallow = (ev) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+        };
+        window.addEventListener('click', swallow, true);
+        setTimeout(() => window.removeEventListener('click', swallow, true), 0);
+        let landed = false;
+        const land = () => {
+          if (landed) return;
+          landed = true;
+          ghost.remove();
+          item.classList.remove('is-drag-source');
+          if (commit && to !== from) onSort(from, to);
+        };
+        if (calmMotion.matches) return land();
+        // копия «прилетает» на новое место и только потом исчезает
+        const landing = `translate(${box.left - rect.left}px, ${box.top - rect.top}px)`;
+        ghost.animate([{ transform: ghost.style.transform }, { transform: landing }], { duration: 140, easing: 'ease-out' });
+        ghost.style.transform = landing;
+        setTimeout(land, 150);
+      }
+
+      const onUp = (ev) => ev.pointerId === e.pointerId && finish(true);
+      const onCancel = (ev) => ev.pointerId === e.pointerId && finish(false);
+      const onKey = (ev) => {
+        if (ev.key !== 'Escape' || !drag) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        finish(false);
+      };
+
+      window.addEventListener('pointermove', onMove, { passive: false });
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onCancel);
+      window.addEventListener('keydown', onKey, true);
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      if (touch && !quick) {
+        container.addEventListener('contextmenu', onContext);
+        item.classList.add('is-pressing');
+        timer = setTimeout(begin, 280);
+      }
+    });
+  }
+
   const head = (title, desc) => h('header', { class: 'page-head' }, h('h1', { text: title }), desc && h('p', { text: desc }));
   const card = (...kids) => h('section', { class: 'card' }, ...kids);
   const cardTitle = (text) => h('h3', { class: 'card__title', text });
@@ -496,54 +844,30 @@
   // Список с перетаскиванием, стрелками и удалением
   function listEditor(items, row, { empty, addLabel, make, max } = {}) {
     const rows = h('div', { class: 'rows' });
-    let dragging = false;
 
     function redraw() {
       rows.replaceChildren();
       if (!items.length && empty) rows.append(h('p', { class: 'rows__empty', text: empty }));
       items.forEach((item, i) => {
-        const grip = h('span', { class: 'grip', title: 'Перетащи, чтобы поменять порядок' }, ui('grip'));
-        const node = h('div', { class: 'row', 'data-index': i }, grip,
+        rows.append(h('div', { class: 'row' },
+          h('span', { class: 'grip', title: 'Потяни, чтобы поменять порядок' }, ui('grip')),
           h('div', { class: 'row__body' }, row(item, i, redraw)),
           h('div', { class: 'row__ctl' },
             iconBtn('up', 'Выше', i === 0, () => { move(items, i, i - 1); changed(); redraw(); }),
             iconBtn('down', 'Ниже', i === items.length - 1, () => { move(items, i, i + 1); changed(); redraw(); }),
-            iconBtn('trash', 'Удалить', false, () => { items.splice(i, 1); changed(); redraw(); }, 'danger')));
-
-        grip.addEventListener('pointerdown', () => {
-          node.draggable = true;
-          document.addEventListener('pointerup', () => { node.draggable = false; }, { once: true });
-        });
-        node.addEventListener('dragstart', (e) => {
-          dragging = true;
-          node.classList.add('is-dragging');
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', String(i));
-        });
-        node.addEventListener('dragover', (e) => {
-          if (!dragging) return;
-          e.preventDefault();
-          const current = rows.querySelector('.is-dragging');
-          if (!current || current === node) return;
-          const box = node.getBoundingClientRect();
-          rows.insertBefore(current, e.clientY > box.top + box.height / 2 ? node.nextSibling : node);
-        });
-        node.addEventListener('drop', (e) => e.preventDefault());
-        node.addEventListener('dragend', () => {
-          node.draggable = false;
-          if (!dragging) return;
-          dragging = false;
-          const order = Array.from(rows.querySelectorAll('.row'), (n) => Number(n.dataset.index));
-          if (order.some((k, j) => k !== j)) {
-            items.splice(0, items.length, ...order.map((k) => items[k]));
-            changed();
-          }
-          redraw();
-        });
-        rows.append(node);
+            iconBtn('trash', 'Удалить', false, () => { items.splice(i, 1); changed(); redraw(); }, 'danger'))));
       });
     }
 
+    sortable(rows, {
+      items: '.row',
+      instant: '.grip',
+      onSort: (from, to) => {
+        move(items, from, to);
+        changed();
+        redraw();
+      },
+    });
     redraw();
     const wrap = h('div', { class: 'rows-wrap' }, rows);
     wrap.redraw = redraw;
@@ -621,19 +945,22 @@
     const img = h('img', { alt: '' });
     const empty = h('span', { class: 'thumb__empty', text: 'нет картинки' });
     const thumb = h('div', { class: `thumb thumb--${shape}` }, img, empty);
+    let shown = null;
     const sync = () => {
       const has = !!obj[key];
-      if (has && img.getAttribute('src') !== view(obj[key])) img.src = view(obj[key]);
       img.hidden = !has;
       empty.hidden = has;
       empty.textContent = 'нет картинки';
+      if (has && shown !== obj[key]) {
+        shown = obj[key];
+        showThumb(img, obj[key], () => {
+          img.hidden = true;
+          empty.hidden = false;
+          empty.textContent = 'не открылась';
+        });
+      }
       if (onChange) onChange();
     };
-    img.addEventListener('error', () => {
-      img.hidden = true;
-      empty.hidden = false;
-      empty.textContent = 'не открылась';
-    });
     const urlInput = input(obj, key, { url: true, placeholder: 'https://… или загрузи файл', onCommit: sync });
     const zone = dropzone({
       kind: 'image',
@@ -933,12 +1260,22 @@
       uploadMany(Array.from(e.dataTransfer.files));
     });
 
+    sortable(grid, {
+      items: '.gal__tile',
+      layout: 'grid',
+      onSort: (from, to) => {
+        move(images, from, to);
+        changed();
+        draw();
+      },
+    });
+
     function draw() {
       grid.replaceChildren();
       images.forEach((src, i) => {
-        const tile = h('div', { class: 'gal__tile' });
-        const img = h('img', { src: view(src), alt: `Работа ${i + 1}`, loading: 'lazy' });
-        img.addEventListener('error', () => tile.classList.add('is-broken'));
+        const tile = h('div', { class: 'gal__tile', title: 'Зажми и перетащи, чтобы поменять место' });
+        const img = h('img', { alt: `Работа ${i + 1}`, loading: 'lazy', draggable: 'false' });
+        showThumb(img, src, () => tile.classList.add('is-broken'));
         tile.append(img, h('div', { class: 'gal__ctl' },
           iconBtn('left', 'Левее', i === 0, () => { move(images, i, i - 1); changed(); draw(); }),
           iconBtn('right', 'Правее', i === images.length - 1, () => { move(images, i, i + 1); changed(); draw(); }),
@@ -1049,6 +1386,19 @@
     const datalist = h('datalist', { id: 'merchCategories' });
     const search = h('input', { type: 'search', placeholder: 'найти товар: название, фандом, категория…', autocomplete: 'off' });
     search.addEventListener('input', () => draw());
+    // порядок меняем только в полном списке: в результатах поиска непонятно, куда встанет товар
+    sortable(list, {
+      items: '.merch-row',
+      handle: '.merch-row__head',
+      instant: '.grip',
+      ghostOf: (node) => node.querySelector('.merch-row__head'),
+      enabled: () => !search.value.trim(),
+      onSort: (from, to) => {
+        move(g.items, from, to);
+        changed();
+        draw();
+      },
+    });
 
     const badges = (it) => it.links.map((l) => marketBadge(l.market, !l.url));
     const describe = (it) => [it.category, it.subtitle].filter(Boolean).join(' · ') || 'без подписи';
@@ -1056,19 +1406,24 @@
     function row(it, canMove) {
       const i = g.items.indexOf(it);
       const isOpen = openId === it.id;
-      const thumb = h('img', { class: 'merch-row__img', src: view(it.image) || null, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
+      const thumb = h('img', { class: 'merch-row__img', alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', draggable: 'false' });
       const title = h('b', { text: it.title || 'без названия' });
       const sub = h('span', { text: describe(it) });
       const logos = h('span', { class: 'merch-row__mk' }, badges(it));
+      let shownImage = null;
       const refreshHead = () => {
         title.textContent = it.title || 'без названия';
         sub.textContent = describe(it);
         logos.replaceChildren(...badges(it));
-        if (it.image) thumb.src = view(it.image);
+        if (it.image === shownImage) return;
+        shownImage = it.image;
+        if (it.image) showThumb(thumb, it.image);
         else thumb.removeAttribute('src');
       };
+      refreshHead();
       const node = h('div', { class: `merch-row${isOpen ? ' is-open' : ''}` },
-        h('div', { class: 'merch-row__head' }, thumb, h('div', { class: 'merch-row__meta' }, title, sub), logos,
+        h('div', { class: 'merch-row__head', title: canMove ? 'Зажми и перетащи, чтобы поменять место' : null },
+          canMove && h('span', { class: 'grip' }, ui('grip')), thumb, h('div', { class: 'merch-row__meta' }, title, sub), logos,
           h('div', { class: 'row__ctl' },
             canMove && iconBtn('up', 'Выше', i === 0, () => { move(g.items, i, i - 1); changed(); draw(); }),
             canMove && iconBtn('down', 'Ниже', i === g.items.length - 1, () => { move(g.items, i, i + 1); changed(); draw(); }),
@@ -1411,8 +1766,14 @@
     });
     box.append(h('div', { class: 'files' }, files.map((f) => {
       const isImage = /\.(png|jpe?g|webp|gif|avif)$/i.test(f.name);
+      let preview = ui('music');
+      if (isImage) {
+        preview = h('img', { alt: '', loading: 'lazy' });
+        if (f.thumb || !GH) showThumb(preview, f.url);
+        else preview.src = view(f.url);
+      }
       const row = h('div', { class: 'file' },
-        h('a', { class: 'file__thumb', href: view(f.url), target: '_blank', rel: 'noopener', title: 'Открыть' }, isImage ? h('img', { src: view(f.url), alt: '', loading: 'lazy' }) : ui('music')),
+        h('a', { class: 'file__thumb', href: view(f.url), target: '_blank', rel: 'noopener', title: 'Открыть' }, preview),
         h('div', { style: 'min-width:0' }, h('div', { class: 'file__name', text: f.name }),
           h('div', { class: 'file__meta', text: f.mtime ? `${fmtSize(f.size)} · ${new Date(f.mtime).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })}` : fmtSize(f.size) })),
         h('span', { class: `badge ${f.used ? 'badge--used' : 'badge--free'}`, text: f.used ? 'на сайте' : 'не используется' }),
