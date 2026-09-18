@@ -55,6 +55,8 @@
       roles: line(P.roles, 120, d.profile.roles),
       greeting: text(P.greeting, 600, d.profile.greeting),
       avatar: has(P, 'avatar') ? url(P.avatar) : d.profile.avatar,
+      // логотип вместо имени в шапке и на заставке; пусто — пишется имя шрифтом
+      logo: has(P, 'logo') ? url(P.logo) : d.profile.logo || '',
       cover: has(P, 'cover') ? url(P.cover) : d.profile.cover,
       orderButton: line(P.orderButton, 60, d.profile.orderButton),
     };
