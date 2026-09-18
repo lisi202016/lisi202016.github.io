@@ -1233,13 +1233,13 @@
 
   function renderProfile(root) {
     const p = S.content.profile;
-    root.append(head('Профиль', 'Шапка сайта: имя или логотип, приветствие, аватарка и фон.'));
+    root.append(head('Профиль', 'Шапка сайта: имя, приветствие, аватарка, логотип и фон.'));
     root.append(card(
       h('div', { class: 'grid2' }, field('Имя', input(p, 'name', { max: 60 })), field('Подзаголовок', input(p, 'roles', { max: 120, placeholder: 'художник · дизайнер · аниматор' }))),
       field('Приветствие', input(p, 'greeting', { multiline: true, rows: 3, max: 600 })),
       field('Текст кнопки заказа', input(p, 'orderButton', { max: 60 }))));
     root.append(card(cardTitle('Картинки'),
-      imageField('Логотип', p, 'logo', { shape: 'logo', hint: 'Показывается вместо имени в шапке и на заставке. Лучше PNG с прозрачным фоном. Пусто — имя пишется шрифтом.' }),
+      imageField('Логотип', p, 'logo', { shape: 'logo', hint: 'Небольшой значок справа на баннере шапки. Лучше PNG с прозрачным фоном. Пусто — значка нет.' }),
       imageField('Аватарка', p, 'avatar', { shape: 'round', hint: 'Лучше квадратная, от 400×400.' }),
       imageField('Фон шапки', p, 'cover', { shape: 'wide', hint: 'Широкая картинка — на сайте она затемняется, чтобы текст читался.' })));
     root.append(card(field('Подпись внизу сайта', input(S.content.site, 'footer', { max: 160 }), 'Перед ней автоматически ставится © год и имя.')));
