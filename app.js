@@ -194,6 +194,7 @@
 
   function localize(d) {
     d.profile.avatar = asset(d.profile.avatar);
+    d.profile.logo = asset(d.profile.logo);
     d.profile.cover = asset(d.profile.cover);
     d.music.src = asset(d.music.src);
     d.commissions.categories.forEach(function (c) {
@@ -208,8 +209,23 @@
   // ---------------------------------------------------------- шапка и ссылки
 
   var profile = data.profile;
+
+  // логотип вместо имени; не загрузился — возвращаем имя текстом
+  function showName(box, cls) {
+    if (!profile.logo) {
+      box.textContent = profile.name;
+      return;
+    }
+    var logo = el('img', { class: cls, alt: profile.name || 'Лиси', decoding: 'async', draggable: 'false' });
+    box.classList.add('has-logo');
+    box.replaceChildren(logo);
+    setImage(logo, profile.logo, 720, function () {
+      box.classList.remove('has-logo');
+      box.textContent = profile.name;
+    });
+  }
   document.title = profile.name ? profile.name + ' ♡' : document.title;
-  $('name').textContent = profile.name;
+  showName($('name'), 'hero__logo');
   $('roles').textContent = profile.roles;
   $('greeting').textContent = profile.greeting;
   $('orderButtonText').textContent = profile.orderButton || 'заказать арт';
@@ -963,7 +979,7 @@
   if (hasMusic) {
     // браузер не даст включить звук без действия человека — поэтому заставка
     $('gateText').textContent = data.site.gateText || 'нажми, чтобы войти';
-    $('gateName').textContent = profile.name;
+    showName($('gateName'), 'gate__logo');
     $('gate').hidden = false;
     $('gate').addEventListener('click', function () { enter(true); });
     $('gateQuiet').addEventListener('click', function (e) {

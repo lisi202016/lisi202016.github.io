@@ -293,6 +293,26 @@ button { font: inherit; color: inherit; }
   text-shadow: 0 4px 0 var(--rose);
   overflow-wrap: anywhere;
 }
+/* логотип вместо имени: тонкая белая кромка, чтобы чёрный контур читался на тёмной шапке */
+.hero__name.has-logo, .gate__name.has-logo { line-height: 0; text-shadow: none; }
+.hero__name.has-logo { margin: 6px 0 4px; }
+.hero__logo {
+  display: block;
+  width: 330px;
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.95)) drop-shadow(0 16px 24px rgba(0, 0, 0, 0.45));
+  transform-origin: 50% 75%;
+  transition: transform 0.6s var(--spring);
+}
+.hero__logo:hover { transform: rotate(-3deg) scale(1.04); }
+.gate__logo {
+  display: block;
+  width: min(290px, 72vw);
+  height: auto;
+  filter: drop-shadow(0 14px 24px rgba(140, 36, 76, 0.45));
+  animation: bob 3.4s ease-in-out 0.4s infinite;
+}
 .hero__greeting {
   margin: 8px 0 24px;
   max-width: 44ch;
@@ -1054,6 +1074,7 @@ button { font: inherit; color: inherit; }
   .hero__body { flex-direction: column; gap: 22px; text-align: center; }
   .avatar { width: 160px; height: 160px; }
   .hero__name { font-size: 52px; }
+  .hero__logo { width: 250px; max-width: 72vw; margin-inline: auto; }
   .hero__greeting { margin-inline: auto; font-size: 16px; }
   .hero__actions { justify-content: center; }
   .hero__cover::after { background: linear-gradient(0deg, rgba(36, 6, 10, 0.92) 0%, rgba(36, 6, 10, 0.55) 100%); }
