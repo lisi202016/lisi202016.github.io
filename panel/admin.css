@@ -321,6 +321,8 @@ body.is-sorting, body.is-sorting * { cursor: grabbing !important; -webkit-user-s
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .thumb--round { width: 96px; height: 96px; border: 4px solid var(--rose); border-radius: 50%; }
 .thumb--wide { width: 176px; height: 98px; border-radius: 14px; }
+.thumb--logo { width: 176px; height: 124px; border-radius: 14px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); }
+.thumb--logo img { object-fit: contain; padding: 8px; }
 
 .gal-wrap { display: grid; gap: 10px; }
 .gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
@@ -569,6 +571,7 @@ select { appearance: none; padding-right: 32px; background: var(--pink-50) url("
   .price-kind { grid-column: 1 / -1; }
   .image-field__row { align-items: flex-start; }
   .thumb--wide { width: 110px; height: 70px; }
+  .thumb--logo { width: 110px; height: 78px; }
   .thumb--round { width: 72px; height: 72px; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tile__value { font-size: 24px; }
