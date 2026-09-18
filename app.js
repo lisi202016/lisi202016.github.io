@@ -210,22 +210,18 @@
 
   var profile = data.profile;
 
-  // логотип вместо имени; не загрузился — возвращаем имя текстом
-  function showName(box, cls) {
-    if (!profile.logo) {
-      box.textContent = profile.name;
-      return;
-    }
-    var logo = el('img', { class: cls, alt: profile.name || 'Лиси', decoding: 'async', draggable: 'false' });
-    box.classList.add('has-logo');
-    box.replaceChildren(logo);
-    setImage(logo, profile.logo, 720, function () {
-      box.classList.remove('has-logo');
-      box.textContent = profile.name;
+  // логотип — небольшой значок справа на баннере; имя остаётся текстом
+  if (profile.logo) {
+    var heroLogo = $('heroLogo');
+    heroLogo.hidden = false;
+    heroLogo.parentElement.classList.add('has-logo');
+    setImage(heroLogo, profile.logo, 480, function () {
+      heroLogo.hidden = true;
+      heroLogo.parentElement.classList.remove('has-logo');
     });
   }
   document.title = profile.name ? profile.name + ' ♡' : document.title;
-  showName($('name'), 'hero__logo');
+  $('name').textContent = profile.name;
   $('roles').textContent = profile.roles;
   $('greeting').textContent = profile.greeting;
   $('orderButtonText').textContent = profile.orderButton || 'заказать арт';
@@ -979,14 +975,15 @@
   if (hasMusic) {
     // браузер не даст включить звук без действия человека — поэтому заставка
     $('gateText').textContent = data.site.gateText || 'нажми, чтобы войти';
-    showName($('gateName'), 'gate__logo');
+    $('gateName').textContent = profile.name;
     $('gate').hidden = false;
     $('gate').addEventListener('click', function () { enter(true); });
     $('gateQuiet').addEventListener('click', function (e) {
       e.stopPropagation();
       enter(false);
     });
-    $('gateEnter').focus({ preventScroll: true });
+    // фокус — чтобы Enter сразу входил, но без рамки: она нужна только тем, кто ходит по сайту Tab'ом
+    $('gateEnter').focus({ preventScroll: true, focusVisible: false });
   } else {
     $('gate').remove();
     enter(false);
