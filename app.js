@@ -248,10 +248,12 @@
     paragraphs($('aboutText'), about.text);
     about.facts.forEach(function (fact) {
       if (!fact.label && !fact.value) return;
-      $('facts').append(el('li', { class: 'fact' },
+      var card = el('li', { class: 'fact' },
         el('span', { class: 'fact__emoji', text: fact.emoji || '♡' }),
         el('span', null, el('span', { class: 'fact__label', text: fact.label }), el('span', { class: 'fact__value', text: fact.value }))
-      ));
+      );
+      card.addEventListener('click', function () { popFact(card, fact.emoji || '♡'); });
+      $('facts').append(card);
     });
     $('signature').textContent = about.signature;
   }
@@ -849,8 +851,12 @@
   var musicBroken = false;
   var fadeFrame = 0;
 
-  var savedVolume = parseFloat(safeStorage('get', 'lisi:volume'));
-  var volume = isFinite(savedVolume) ? Math.min(1, Math.max(0, savedVolume)) : music.volume;
+  // Каждый заход начинается тихо — с громкости из панели, а дальше посетитель сам делает громче.
+  // Слух воспринимает громкость нелинейно: ползунок идёт по квадрату, а самое тихое положение
+  // не опускается ниже слышимого минимума (раньше нижняя треть ползунка была тишиной).
+  var MIN_GAIN = 0.05;
+  function gainOf(v) { return v <= 0 ? 0 : MIN_GAIN + (1 - MIN_GAIN) * v * v; }
+  var volume = Math.min(1, Math.max(0, music.volume));
 
   function setVolumeUi(v) {
     volumeInput.value = v;
@@ -873,9 +879,9 @@
     audio.volume = 0;
     var attempt = audio.play();
     if (attempt && attempt.then) {
-      attempt.then(function () { fadeTo(volume, fadeMs); }, function () { player.classList.remove('is-playing'); });
+      attempt.then(function () { fadeTo(gainOf(volume), fadeMs); }, function () { player.classList.remove('is-playing'); });
     } else {
-      fadeTo(volume, fadeMs);
+      fadeTo(gainOf(volume), fadeMs);
     }
   }
 
@@ -915,11 +921,10 @@
     volumeInput.addEventListener('input', function () {
       cancelAnimationFrame(fadeFrame);
       volume = parseFloat(volumeInput.value);
-      audio.volume = volume;
+      audio.volume = gainOf(volume);
       audio.muted = false;
       player.classList.remove('is-muted');
       setVolumeUi(volume);
-      safeStorage('set', 'lisi:volume', String(volume));
     });
     $('muteBtn').addEventListener('click', function () {
       audio.muted = !audio.muted;
@@ -969,6 +974,32 @@
   } else {
     $('gate').remove();
     enter(false);
+  }
+
+  // ---------------------------------------------------------- карточки «обо мне»
+  // по нажатию карточка пружинит, значок подпрыгивает, а его копии разлетаются вверх
+
+  function popFact(card, emoji) {
+    card.classList.remove('is-pop');
+    void card.offsetWidth;
+    card.classList.add('is-pop');
+    if (reduceMotion || !document.body.animate) return;
+    var box = card.querySelector('.fact__emoji').getBoundingClientRect();
+    for (var i = 0; i < 5; i++) {
+      var s = el('span', { class: 'fact-float', text: emoji, 'aria-hidden': 'true' });
+      s.style.left = box.left + box.width / 2 + 'px';
+      s.style.top = box.top + box.height / 2 + 'px';
+      document.body.append(s);
+      var dx = (i - 2) * 24 + Math.random() * 12 - 6;
+      var up = 70 + Math.random() * 50;
+      s.animate([
+        { transform: 'translate(-50%, -50%) scale(0.4)', opacity: 0 },
+        { transform: 'translate(-50%, calc(-50% - 16px)) scale(1.1)', opacity: 1, offset: 0.25 },
+        { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% - ' + up + 'px)) scale(0.8) rotate(' + (Math.random() * 60 - 30) + 'deg)', opacity: 0 }
+      ], { duration: 900 + i * 70, easing: 'cubic-bezier(.2,.8,.3,1)' }).onfinish = (function (node) {
+        return function () { node.remove(); };
+      })(s);
+    }
   }
 
   // ---------------------------------------------------------- искорки по клику
