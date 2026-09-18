@@ -16,7 +16,7 @@
     "src": "/music/music-box.m4a",
     "title": "Музыкальная шкатулка",
     "artist": "заглушка — поменяй в панели",
-    "volume": 0.45,
+    "volume": 0.2,
     "startAt": 0,
     "loop": true
   },

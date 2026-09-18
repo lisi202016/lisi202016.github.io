@@ -5,6 +5,6 @@ window.LISI_PANEL = {
   "branch": "main",
   "siteUrl": "https://lisi202016.github.io/",
   "stats": {
-    "endpoint": "https://qjimzeakptpoztcmkxdx.supabase.co/functions/v1/site-stats"
+    "endpoint": "https://vtocwbmtqjqadvvnkknj.supabase.co/functions/v1/site-stats"
   }
 };

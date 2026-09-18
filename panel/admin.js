@@ -1092,7 +1092,10 @@
     S.onChange = drawPreview;
   }
 
-  const MUSIC_BOX = { src: '/music/music-box.m4a', title: 'Музыкальная шкатулка', artist: '', startAt: 0, volume: 0.45 };
+  // та же кривая, что в плеере на сайте: ползунок по квадрату и слышимый минимум
+  const volumeGain = (v) => (v <= 0 ? 0 : 0.05 + 0.95 * v * v);
+
+  const MUSIC_BOX = { src: '/music/music-box.m4a', title: 'Музыкальная шкатулка', artist: '', startAt: 0, volume: 0.2 };
 
   function renderMusic(root) {
     const m = S.content.music;
@@ -1120,7 +1123,7 @@
         else audio.removeAttribute('src');
         audio.load();
       }
-      audio.volume = m.volume;
+      audio.volume = volumeGain(m.volume);
       syncMeta();
       syncBox();
     };
@@ -1192,7 +1195,7 @@
     };
     vol.addEventListener('input', () => {
       m.volume = Number(vol.value) / 100;
-      audio.volume = m.volume;
+      audio.volume = volumeGain(m.volume);
       syncVol();
       changed();
     });
@@ -1218,8 +1221,8 @@
     }, ui('play'), 'Послушать с этого места');
 
     root.append(card(cardTitle('Как играть'),
-      h('div', { class: 'field' }, h('span', { class: 'field__label' }, 'Громкость по умолчанию', volValue), vol,
-        h('span', { class: 'field__hint', text: 'Посетитель может поменять её в плеере — его выбор запомнится в его браузере.' })),
+      h('div', { class: 'field' }, h('span', { class: 'field__label' }, 'Громкость при входе', volValue), vol,
+        h('span', { class: 'field__hint', text: 'С неё музыка начинается у каждого, кто заходит на сайт, — лучше потише. Сделать громче можно в плеере на сайте.' })),
       h('div', { class: 'field' }, h('span', { class: 'field__label', text: 'Начинать с секунды' }), h('div', { class: 'inline' }, start, take, listen),
         h('span', { class: 'field__hint', text: 'Поставь трек на паузу в нужном месте и нажми «Взять из плеера».' })),
       toggle(m, 'loop', 'Повторять по кругу'),
