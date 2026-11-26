@@ -319,20 +319,6 @@
     "lead": "Фигурки, брелоки, значки и постеры с моими артами. Нажми на товар — откроется страница, где его можно купить.",
     "items": [
       {
-        "id": "hdp65zhs",
-        "title": "Акриловые фигурки по рыцарям гвинервы - Гвиневра",
-        "subtitle": "Рыцари Гвиневры",
-        "category": "Акриловая фигурка",
-        "image": "/uploads/img-mwxhfk2h-7esfr6oi.webp",
-        "links": [
-          {
-            "market": "ozon",
-            "url": "https://ozon.ru/t/sZZVgPv",
-            "price": "1 187"
-          }
-        ]
-      },
-      {
         "id": "m02",
         "title": "Кейн",
         "subtitle": "Удивительный цифровой цирк",
@@ -722,6 +708,34 @@
             "market": "wildberries",
             "url": "https://www.wildberries.ru/catalog/1446377688/detail.aspx",
             "price": ""
+          }
+        ]
+      },
+      {
+        "id": "hdp65zhs",
+        "title": "Акриловые фигурки по рыцарям гвинервы - Гвиневра",
+        "subtitle": "Рыцари Гвиневры",
+        "category": "Акриловая фигурка",
+        "image": "/uploads/img-mwxhfk2h-7esfr6oi.webp",
+        "links": [
+          {
+            "market": "ozon",
+            "url": "https://ozon.ru/t/sZZVgPv",
+            "price": "1 187"
+          }
+        ]
+      },
+      {
+        "id": "hrx0xvcu",
+        "title": "Акриловые фигурки по рыцарям гвинервы",
+        "subtitle": "Рыцари Гвиневры",
+        "category": "Акриловая фигурка",
+        "image": "/uploads/img-mwxhh20a-ua3nikxh.webp",
+        "links": [
+          {
+            "market": "ozon",
+            "url": "https://ozon.ru/t/looic4u",
+            "price": "3 734 "
           }
         ]
       },
